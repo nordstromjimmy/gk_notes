@@ -3,14 +3,13 @@ import 'package:file_picker/file_picker.dart';
 import 'package:gk_notes/data/models/repositories/hive_note_repository.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show MatrixUtils;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/note.dart';
 import 'providers.dart';
 import 'canvas_controller.dart';
 import 'widgets/grid_painter.dart';
 import 'widgets/note_card.dart';
-import '../search/search_bar.dart'; // contains _SearchSheet
+import '../search/search_bar.dart';
 
 class CanvasPage extends ConsumerStatefulWidget {
   const CanvasPage({super.key});
@@ -20,8 +19,19 @@ class CanvasPage extends ConsumerStatefulWidget {
 }
 
 class _CanvasPageState extends ConsumerState<CanvasPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final viewport = MediaQuery.of(context).size;
+      final dx = -(canvasSize.width / 2 - viewport.width / 2);
+      final dy = -(canvasSize.height / 2 - viewport.height / 2);
+      canvas.transformController.value = Matrix4.identity()..translate(dx, dy);
+    });
+  }
+
   final CanvasController canvas = CanvasController();
-  final Size canvasSize = const Size(8000, 8000);
+  final Size canvasSize = const Size(20000, 20000);
   // query is managed inside the bottom sheet now
   String query = '';
 
@@ -31,7 +41,7 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Canvas Notes'),
+        title: const Text('GK Anteckningar'),
         actions: [
           PopupMenuButton<String>(
             onSelected: (v) async {
@@ -74,15 +84,33 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
         },
         child: InteractiveViewer(
           transformationController: canvas.transformController,
+          constrained: false,
+          clipBehavior: Clip.none,
+          alignment: Alignment.topLeft,
           minScale: 0.25,
-          maxScale: 4,
-          boundaryMargin: const EdgeInsets.all(4000),
+          maxScale: 12,
+          boundaryMargin: const EdgeInsets.all(50000),
           child: SizedBox(
             width: canvasSize.width,
             height: canvasSize.height,
             child: Stack(
               children: [
-                Positioned.fill(child: CustomPaint(painter: GridPainter())),
+                Positioned.fill(
+                  child: AnimatedBuilder(
+                    animation: canvas.transformController,
+                    builder: (_, __) {
+                      final scale = canvas.transformController.value
+                          .getMaxScaleOnAxis();
+                      return CustomPaint(
+                        painter: GridPainter(
+                          spacing: 64,
+                          majorEvery: 14,
+                          scale: scale,
+                        ),
+                      );
+                    },
+                  ),
+                ),
                 for (final n in notes)
                   Positioned(
                     left: n.pos.dx,
@@ -123,29 +151,70 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
 
   Future<void> _edit(Note note) async {
     final ctl = TextEditingController(text: note.text);
+
+    // Show edit dialog
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Edit note'),
+        // Title with trash icon on the right
+        title: Row(
+          children: [
+            const Text('Redigera'),
+            const Spacer(),
+            IconButton(
+              tooltip: 'Radera',
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              onPressed: () async {
+                // Confirm delete
+                final sure = await showDialog<bool>(
+                  context: ctx,
+                  builder: (c2) => AlertDialog(
+                    title: const Text('Radera?'),
+                    content: const Text('Vill du radera denna anteckning?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(c2, false),
+                        child: const Text('Avbryt'),
+                      ),
+                      FilledButton.tonal(
+                        onPressed: () => Navigator.pop(c2, true),
+                        child: const Text('Radera'),
+                      ),
+                    ],
+                  ),
+                );
+                if (sure == true) {
+                  // Close the edit dialog
+                  Navigator.pop(ctx);
+                  // Delete the note
+                  ref.read(notesProvider.notifier).remove(note.id);
+                }
+              },
+            ),
+          ],
+        ),
+
         content: TextField(
           minLines: 3,
           maxLines: 10,
           controller: ctl,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'Type your note…'),
+          autofocus: false,
+          decoration: const InputDecoration(hintText: ''),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: const Text('Avbryt'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, ctl.text),
-            child: const Text('Save'),
+            child: const Text('Spara'),
           ),
         ],
       ),
     );
+
+    // Save edits (only if not deleted)
     if (result != null) {
       ref.read(notesProvider.notifier).update(note.copyWith(text: result));
     }

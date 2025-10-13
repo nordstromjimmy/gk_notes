@@ -3,16 +3,23 @@ import 'package:flutter/material.dart';
 class GridPainter extends CustomPainter {
   final double spacing;
   final int majorEvery;
-  GridPainter({this.spacing = 64, this.majorEvery = 4});
+  final double scale; // current zoom scale
+
+  GridPainter({this.spacing = 64, this.majorEvery = 14, this.scale = 1.0});
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Keep strokes ~1 logical pixel regardless of zoom
     final minor = Paint()
-      ..color = Colors.black.withOpacity(0.04)
-      ..strokeWidth = 1;
+      ..color = Colors.black.withOpacity(0.06)
+      ..strokeWidth = (1 / scale).clamp(0.5, 2.0)
+      ..isAntiAlias = false;
+
     final major = Paint()
-      ..color = Colors.black.withOpacity(0.08)
-      ..strokeWidth = 1.2;
+      ..color = Colors.black.withOpacity(0.12)
+      ..strokeWidth = (1.25 / scale).clamp(0.6, 2.5)
+      ..isAntiAlias = false;
+
     for (double x = 0; x <= size.width; x += spacing) {
       final isMajor = ((x / spacing).round() % majorEvery) == 0;
       canvas.drawLine(
@@ -32,6 +39,8 @@ class GridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant GridPainter oldDelegate) =>
-      oldDelegate.spacing != spacing || oldDelegate.majorEvery != majorEvery;
+  bool shouldRepaint(covariant GridPainter old) =>
+      old.spacing != spacing ||
+      old.majorEvery != majorEvery ||
+      old.scale != scale;
 }

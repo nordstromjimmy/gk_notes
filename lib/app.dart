@@ -10,7 +10,7 @@ class NotesCanvasApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ProviderScope(
       child: MaterialApp(
-        title: 'Canvas Notes',
+        title: 'GK Notes',
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
         home: const CanvasPage(),
