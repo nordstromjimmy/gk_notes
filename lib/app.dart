@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gk_notes/features/canvas/canvas_view.dart';
+import 'package:gk_notes/features/canvas/canvas_page.dart';
 import 'core/theme.dart';
 
 class NotesCanvasApp extends StatelessWidget {
