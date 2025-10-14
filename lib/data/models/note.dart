@@ -6,6 +6,7 @@ class Note {
   late String id;
 
   // Content
+  late String title;
   late String text;
 
   // Canvas geometry
@@ -32,23 +33,23 @@ class Note {
   // Convenience creator
   Note.create({
     required this.id,
-    required String text,
+    required this.title,
+    required this.text,
     required Offset pos,
     required Size size,
-    required int colorValue,
+    required this.colorValue,
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) : text = text,
-       x = pos.dx,
+  }) : x = pos.dx,
        y = pos.dy,
        w = size.width,
        h = size.height,
-       colorValue = colorValue,
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
   Note copyWith({
     String? id,
+    String? title,
     String? text,
     Offset? pos,
     Size? size,
@@ -58,6 +59,7 @@ class Note {
   }) {
     final n = Note();
     n.id = id ?? this.id;
+    n.title = title ?? this.text;
     n.text = text ?? this.text;
     final p = pos ?? Offset(x, y);
     final s = size ?? Size(w, h);
@@ -74,6 +76,7 @@ class Note {
   // ----- persistence helpers (JSON-ready) -----
   Map<String, dynamic> toExportJson() => {
     'id': id,
+    'title': title,
     'text': text,
     'x': x,
     'y': y,
@@ -87,6 +90,7 @@ class Note {
   static Note fromImportJson(Map<String, dynamic> j) {
     final n = Note();
     n.id = j['id'] as String;
+    n.title = j['title'] as String;
     n.text = j['text'] as String? ?? '';
     n.x = (j['x'] as num).toDouble();
     n.y = (j['y'] as num).toDouble();

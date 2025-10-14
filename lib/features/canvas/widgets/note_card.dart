@@ -29,11 +29,26 @@ class NoteCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Text(
-          note.text,
-          maxLines: 10,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (note.title.isNotEmpty)
+              Text(
+                note.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            if (note.title.isNotEmpty) const SizedBox(height: 4),
+            Text(
+              note.text,
+              maxLines: 6,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
         ),
       ),
     );

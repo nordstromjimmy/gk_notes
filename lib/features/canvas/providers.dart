@@ -36,20 +36,22 @@ class NotesNotifier extends Notifier<List<Note>> {
     _search.index(state);
   }
 
-  void addAt(Offset canvasPoint) {
+  Future<void> addAt(
+    Offset canvasPoint, {
+    required String title,
+    required String text,
+  }) async {
     final n = Note.create(
       id: _uuid.v4(),
-      text: 'New note',
+      title: title.isEmpty ? '' : title,
+      text: text,
       pos: canvasPoint,
       size: const Size(200, 140),
-      colorValue: Colors
-          .primaries[state.length % Colors.primaries.length]
-          .shade200
-          .value,
+      colorValue: const Color.fromARGB(255, 57, 70, 80).value,
     );
     state = [...state, n];
     _search.index(state);
-    save();
+    await save(); // <- make sure this is awaited
   }
 
   void update(Note note) {

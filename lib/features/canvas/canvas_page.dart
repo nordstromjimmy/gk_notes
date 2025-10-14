@@ -53,7 +53,7 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('GK Anteckningar'),
+        title: const Text('SpaceNotes'),
         actions: [
           PopupMenuButton<String>(
             onSelected: (v) async {
@@ -80,15 +80,17 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.white30,
         onPressed: _openSearchSheet,
-        child: const Icon(Icons.search),
+        child: const Icon(Icons.search, color: Colors.white),
       ),
       body: CanvasViewport(
         controller: canvas,
         canvasSize: canvasSize,
         notes: notes,
-        onAddAt: (scenePoint) =>
-            ref.read(notesProvider.notifier).addAt(scenePoint),
+        onAddAt: (pos, {required title, required text}) => ref
+            .read(notesProvider.notifier)
+            .addAt(pos, title: title, text: text),
         onMove: (id, delta) => ref.read(notesProvider.notifier).move(id, delta),
         onEdit: _edit,
       ),
@@ -121,10 +123,18 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
       ref.read(notesProvider.notifier).remove(note.id);
       return;
     }
+    var updated = note;
+    if (outcome.newTitle != null) {
+      updated = updated.copyWith(title: outcome.newTitle);
+    }
     if (outcome.newText != null) {
-      ref
-          .read(notesProvider.notifier)
-          .update(note.copyWith(text: outcome.newText));
+      updated = updated.copyWith(text: outcome.newText);
+    }
+
+    // If anything changed, persist it
+    if (!identical(updated, note) &&
+        (outcome.newTitle != null || outcome.newText != null)) {
+      ref.read(notesProvider.notifier).update(updated);
     }
   }
 
