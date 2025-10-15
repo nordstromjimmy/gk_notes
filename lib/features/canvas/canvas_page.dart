@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gk_notes/features/canvas/widgets/canvas_viewport.dart';
 import 'package:gk_notes/features/canvas/widgets/edit_note_dialog.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:vector_math/vector_math_64.dart' hide Colors;
 import '../../data/models/note.dart';
 import '../../data/models/repositories/hive_note_repository.dart';
 import '../search/search_bar.dart';
@@ -32,19 +33,16 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
 
   void _centerCamera({double scale = 0.3}) {
     final viewport = MediaQuery.of(context).size;
+    final cx = canvasSize.width / 2, cy = canvasSize.height / 2;
 
-    // focus point: canvas center
-    final cx = canvasSize.width / 2;
-    final cy = canvasSize.height / 2;
-
-    // we want: x' = s*x + tx = viewportWidth/2  (same for y)
     final tx = viewport.width / 2 - scale * cx;
     final ty = viewport.height / 2 - scale * cy;
 
-    // Apply SCALE first, then TRANSLATE → gives x' = s*x + tx
-    canvas.transformController.value = Matrix4.identity()
-      ..scale(scale)
-      ..translate(tx, ty);
+    canvas.transformController.value = Matrix4.compose(
+      Vector3(tx, ty, 0), // translation
+      Quaternion.identity(), // rotation
+      Vector3(scale, scale, 1), // scale
+    );
   }
 
   @override
@@ -80,7 +78,7 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.white30,
+        backgroundColor: Colors.blueGrey[800],
         onPressed: _openSearchSheet,
         child: const Icon(Icons.search, color: Colors.white),
       ),
@@ -141,7 +139,9 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
   Future<void> _export() async {
     final repo = ref.read(repositoryProvider) as HiveNoteRepository;
     final file = await repo.exportToJsonFile();
-    await Share.shareXFiles([XFile(file.path)], text: 'Canvas Notes export');
+    await SharePlus.instance.share(
+      ShareParams(text: 'Notes export', files: [XFile(file.path)]),
+    );
   }
 
   Future<void> _import() async {

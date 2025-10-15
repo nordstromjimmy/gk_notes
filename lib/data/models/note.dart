@@ -59,7 +59,7 @@ class Note {
   }) {
     final n = Note();
     n.id = id ?? this.id;
-    n.title = title ?? this.text;
+    n.title = title ?? this.title;
     n.text = text ?? this.text;
     final p = pos ?? Offset(x, y);
     final s = size ?? Size(w, h);

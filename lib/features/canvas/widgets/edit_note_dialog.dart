@@ -46,12 +46,23 @@ Future<NoteEditOutcome?> showEditNoteDialog({
                         children: [
                           TextButton(
                             onPressed: () => Navigator.pop(c2, false),
-                            child: const Text('Avbryt'),
+                            child: const Text(
+                              'Avbryt',
+                              style: TextStyle(color: Colors.blueGrey),
+                            ),
                           ),
                           Spacer(),
                           FilledButton.tonal(
                             onPressed: () => Navigator.pop(c2, true),
-                            child: const Text('Radera'),
+                            style: ButtonStyle(
+                              backgroundColor: WidgetStatePropertyAll<Color?>(
+                                Colors.blueGrey[800],
+                              ),
+                            ),
+                            child: const Text(
+                              'Radera',
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ),
                         ],
                       ),
@@ -99,7 +110,10 @@ Future<NoteEditOutcome?> showEditNoteDialog({
             children: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Avbryt'),
+                child: const Text(
+                  'Avbryt',
+                  style: TextStyle(color: Colors.blueGrey),
+                ),
               ),
               Spacer(),
               FilledButton(
@@ -107,7 +121,16 @@ Future<NoteEditOutcome?> showEditNoteDialog({
                   ctx,
                   _InternalResult.save(titleCtl.text.trim(), bodyCtl.text),
                 ),
-                child: const Text('Spara'),
+                style: ButtonStyle(
+                  backgroundColor: WidgetStatePropertyAll<Color?>(
+                    Colors.blueGrey[800],
+                  ),
+                ),
+
+                child: const Text(
+                  'Spara',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),

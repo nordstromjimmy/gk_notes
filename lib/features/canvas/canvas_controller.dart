@@ -5,13 +5,6 @@ class CanvasController {
   final TransformationController transformController =
       TransformationController();
 
-  /*   Offset globalToCanvas(Offset globalPoint) {
-    final inv = Matrix4.inverted(transformController.value);
-    final vector = Vector3(globalPoint.dx, globalPoint.dy, 0);
-    final r = inv.transform3(vector);
-    return Offset(r.x, r.y);
-  } */
-
   void setInitialView({
     required Size canvasSize,
     required Size viewportSize,
@@ -22,14 +15,14 @@ class CanvasController {
     final cx = (focus?.dx) ?? (canvasSize.width / 2);
     final cy = (focus?.dy) ?? (canvasSize.height / 2);
 
-    // We want: x' = s*x + tx = viewportWidth/2, same for y
     final tx = viewportSize.width / 2 - s * cx;
     final ty = viewportSize.height / 2 - s * cy;
 
-    // Apply scale first, then translation (so translation isn't scaled)
-    transformController.value = Matrix4.identity()
-      ..scale(s)
-      ..translate(tx, ty);
+    transformController.value = Matrix4.compose(
+      Vector3(tx, ty, 0),
+      Quaternion.identity(),
+      Vector3(scale, scale, 1),
+    );
   }
 
   void zoomToRect(BuildContext context, Rect rect) {

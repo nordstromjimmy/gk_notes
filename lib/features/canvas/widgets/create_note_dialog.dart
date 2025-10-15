@@ -49,18 +49,34 @@ Future<CreateNoteResult?> showCreateNoteDialog(BuildContext context) async {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Avbryt'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(
-                ctx,
-                CreateNoteResult(titleCtl.text.trim(), bodyCtl.text),
-              );
-            },
-            child: const Text('Skapa'),
+          Row(
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  'Avbryt',
+                  style: TextStyle(color: Colors.blueGrey),
+                ),
+              ),
+              Spacer(),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(
+                    ctx,
+                    CreateNoteResult(titleCtl.text.trim(), bodyCtl.text),
+                  );
+                },
+                style: ButtonStyle(
+                  backgroundColor: WidgetStatePropertyAll<Color?>(
+                    Colors.blueGrey[800],
+                  ),
+                ),
+                child: const Text(
+                  'Skapa',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
           ),
         ],
       );

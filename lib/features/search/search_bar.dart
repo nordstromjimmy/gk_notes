@@ -4,7 +4,7 @@ import '../../data/models/note.dart';
 import '../canvas/providers.dart';
 
 class SearchSheet extends ConsumerStatefulWidget {
-  const SearchSheet({required this.onSelect});
+  const SearchSheet({super.key, required this.onSelect});
   final ValueChanged<Note> onSelect;
 
   @override
@@ -73,19 +73,35 @@ class _SearchSheetState extends ConsumerState<SearchSheet> {
                       separatorBuilder: (_, __) => const Divider(height: 1),
                       itemBuilder: (ctx, i) {
                         final n = _results[i];
-                        // Correct: escaped newline in split
-                        final firstLine = n.text.split('\n').first;
+
+                        // Prefer the explicit title; fall back to first line of text.
+                        final lines = n.text.split('\n');
+                        final firstLine = lines.isNotEmpty ? lines.first : '';
+                        final rest = (lines.length > 1)
+                            ? lines.skip(1).join('\n')
+                            : '';
+
+                        final displayTitle = n.title.isNotEmpty
+                            ? n.title
+                            : firstLine;
+                        // If we’re using the first line as title, show the remaining text as subtitle.
+                        final displaySubtitle = n.title.isNotEmpty
+                            ? n.text
+                            : rest;
+
                         return ListTile(
                           title: Text(
-                            firstLine,
+                            displayTitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          subtitle: Text(
-                            n.text,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          subtitle: displaySubtitle.trim().isEmpty
+                              ? null
+                              : Text(
+                                  displaySubtitle,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                           onTap: () => widget.onSelect(n),
                         );
                       },

@@ -47,7 +47,7 @@ class NotesNotifier extends Notifier<List<Note>> {
       text: text,
       pos: canvasPoint,
       size: const Size(200, 140),
-      colorValue: const Color.fromARGB(255, 57, 70, 80).value,
+      colorValue: const Color.fromARGB(255, 56, 70, 79).value,
     );
     state = [...state, n];
     _search.index(state);
