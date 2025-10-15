@@ -157,12 +157,14 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
       File(path),
       replaceExisting: false,
     );
-    final loaded = await repo.load();
-    ref.read(notesProvider.notifier).state = loaded;
+
+    //await repo.load();
+    await ref.read(notesProvider.notifier).reload();
+
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Imported $count notes')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Importerade $count anteckningar')),
+      );
     }
   }
 }

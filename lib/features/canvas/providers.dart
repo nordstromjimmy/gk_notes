@@ -74,6 +74,12 @@ class NotesNotifier extends Notifier<List<Note>> {
     saveDebounced();
   }
 
+  Future<void> reload() async {
+    final loaded = await _repo.load();
+    state = loaded;
+    _search.index(state);
+  }
+
   void resize(String id, Size newSize) {
     state = [
       for (final n in state)
