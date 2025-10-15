@@ -76,7 +76,6 @@ Future<NoteEditOutcome?> showEditNoteDialog({
             ),
           ],
         ),
-        // Give the dialog a wider body
         content: SizedBox(
           width: dialogWidth,
           child: Column(

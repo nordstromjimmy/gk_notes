@@ -63,14 +63,14 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
                 value: 'export',
                 child: ListTile(
                   leading: Icon(Icons.file_upload),
-                  title: Text('Export JSON'),
+                  title: Text('Exportera JSON'),
                 ),
               ),
               PopupMenuItem(
                 value: 'import',
                 child: ListTile(
                   leading: Icon(Icons.file_download),
-                  title: Text('Import JSON'),
+                  title: Text('Importera JSON'),
                 ),
               ),
             ],
