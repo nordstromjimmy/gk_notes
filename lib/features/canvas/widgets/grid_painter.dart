@@ -11,12 +11,12 @@ class GridPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // Keep strokes ~1 logical pixel regardless of zoom
     final minor = Paint()
-      ..color = Colors.white.withValues(alpha: 0.04)
+      ..color = Colors.white.withValues(alpha: 0.08)
       ..strokeWidth = (1 / scale).clamp(0.5, 2.0)
       ..isAntiAlias = false;
 
     final major = Paint()
-      ..color = Colors.white.withValues(alpha: 0.06)
+      ..color = Colors.white.withValues(alpha: 0.14)
       ..strokeWidth = (1.25 / scale).clamp(0.6, 2.5)
       ..isAntiAlias = false;
 

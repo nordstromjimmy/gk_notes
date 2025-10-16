@@ -52,7 +52,7 @@ class _SearchSheetState extends ConsumerState<SearchSheet> {
               padding: const EdgeInsets.all(12),
               child: TextField(
                 controller: _ctl,
-                autofocus: true,
+                autofocus: false,
                 onChanged: _run,
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.search),

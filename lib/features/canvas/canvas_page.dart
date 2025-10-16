@@ -51,7 +51,7 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SpaceNotes'),
+        title: const Text('Grid Notes'),
         actions: [
           PopupMenuButton<String>(
             onSelected: (v) async {

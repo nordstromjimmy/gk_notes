@@ -23,7 +23,7 @@ class DraggableNote extends StatelessWidget {
         final scale = getScale();
         onDrag(d.delta / scale);
       },
-      child: NoteCard(note: note, highlighted: false),
+      child: NoteCard(note: note),
     );
   }
 }
