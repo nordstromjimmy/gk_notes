@@ -86,9 +86,9 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
         controller: canvas,
         canvasSize: canvasSize,
         notes: notes,
-        onAddAt: (pos, {required title, required text}) => ref
+        onAddAt: (pos, {required title, required text, int? colorValue}) => ref
             .read(notesProvider.notifier)
-            .addAt(pos, title: title, text: text),
+            .addAt(pos, title: title, text: text, colorValue: colorValue),
         onMove: (id, delta) => ref.read(notesProvider.notifier).move(id, delta),
         onEdit: _edit,
       ),
@@ -137,10 +137,12 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
     if (outcome.newText != null) {
       updated = updated.copyWith(text: outcome.newText);
     }
+    if (outcome.newColorValue != null) {
+      updated = updated.copyWith(colorValue: outcome.newColorValue);
+    }
 
     // If anything changed, persist it
-    if (!identical(updated, note) &&
-        (outcome.newTitle != null || outcome.newText != null)) {
+    if (!identical(updated, note)) {
       ref.read(notesProvider.notifier).update(updated);
     }
   }

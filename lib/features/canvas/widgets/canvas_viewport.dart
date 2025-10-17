@@ -30,6 +30,7 @@ class CanvasViewport extends ConsumerWidget {
     Offset pos, {
     required String title,
     required String text,
+    int? colorValue,
   })
   onAddAt;
 
@@ -55,7 +56,12 @@ class CanvasViewport extends ConsumerWidget {
           scenePoint.dy.clamp(0, canvasSize.height - kDefaultNoteSize.height),
         );
 
-        await onAddAt(clamped, title: created.title, text: created.text);
+        await onAddAt(
+          clamped,
+          title: created.title,
+          text: created.text,
+          colorValue: created.colorValue,
+        );
       },
       child: InteractiveViewer(
         transformationController: controller.transformController,

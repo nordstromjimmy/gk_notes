@@ -23,18 +23,20 @@ class NoteCard extends StatelessWidget {
                 note.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             if (note.title.isNotEmpty) const SizedBox(height: 4),
-            Text(
-              note.text,
-              maxLines: null,
-              overflow: TextOverflow.visible,
+            if (note.text.isNotEmpty)
+              Text(
+                note.text,
+                maxLines: null,
+                overflow: TextOverflow.visible,
 
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+                style: TextStyle(color: Colors.black),
+              ),
           ],
         ),
       ),

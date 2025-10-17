@@ -40,6 +40,7 @@ class NotesNotifier extends Notifier<List<Note>> {
     Offset canvasPoint, {
     required String title,
     required String text,
+    int? colorValue,
   }) async {
     final n = Note.create(
       id: _uuid.v4(),
@@ -47,7 +48,7 @@ class NotesNotifier extends Notifier<List<Note>> {
       text: text,
       pos: canvasPoint,
       size: const Size(200, 140),
-      colorValue: const Color.fromARGB(255, 56, 70, 79).value,
+      colorValue: colorValue ?? const Color(0xFF38464F).value,
     );
     state = [...state, n];
     _search.index(state);
