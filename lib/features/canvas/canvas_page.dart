@@ -95,18 +95,27 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
     );
   }
 
-  Future<void> _openSearchSheet() async {
+  void _openSearchSheet() async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (ctx) => SearchSheet(
-        onSelect: (note) {
+        onSelect: (noteFromSearch) {
           Navigator.pop(ctx);
+
+          // Fetch the up-to-date note from the current state by id
+          final current = ref
+              .read(notesProvider)
+              .firstWhere(
+                (n) => n.id == noteFromSearch.id,
+                orElse: () => noteFromSearch,
+              );
+
           final rect = Rect.fromLTWH(
-            note.pos.dx,
-            note.pos.dy,
-            note.size.width,
-            note.size.height,
+            current.pos.dx,
+            current.pos.dy,
+            current.size.width,
+            current.size.height,
           );
           canvas.zoomToRect(context, rect);
         },

@@ -47,7 +47,7 @@ class HiveNoteRepository implements NoteRepository {
 
   // ---- export/import helpers ----
   Future<File> exportToJsonFile({
-    String filename = 'canvas_notes_export.json',
+    String filename = 'grid_notes_export.json',
   }) async {
     final box = await _db();
     final list = box.values.map((m) => Map<String, dynamic>.from(m)).toList();

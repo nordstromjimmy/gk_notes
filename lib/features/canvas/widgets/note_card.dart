@@ -32,6 +32,7 @@ class NoteCard extends StatelessWidget {
               note.text,
               maxLines: null,
               overflow: TextOverflow.visible,
+
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
