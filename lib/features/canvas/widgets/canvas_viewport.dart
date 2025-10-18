@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gk_notes/data/models/image_to_attach.dart';
 import 'package:gk_notes/features/canvas/canvas_controller.dart';
 import 'package:gk_notes/features/canvas/providers.dart';
 import 'package:gk_notes/features/canvas/widgets/create_note_dialog.dart';
@@ -27,11 +28,12 @@ class CanvasViewport extends ConsumerWidget {
   final Size canvasSize;
   final List<Note> notes;
 
-  final Future<void> Function(
+  final Future<Note> Function(
     Offset pos, {
     required String title,
     required String text,
     int? colorValue,
+    List<ImageToAttach>? images,
   })
   onAddAt;
 
@@ -62,6 +64,7 @@ class CanvasViewport extends ConsumerWidget {
           title: created.title,
           text: created.text,
           colorValue: created.colorValue,
+          images: created.images,
         );
       },
       child: InteractiveViewer(

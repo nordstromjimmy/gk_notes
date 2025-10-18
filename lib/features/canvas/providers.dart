@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gk_notes/data/models/image_to_attach.dart';
 import 'package:gk_notes/data/models/repositories/hive_note_repository.dart';
 import 'package:gk_notes/data/models/repositories/note_repository.dart';
 import 'package:gk_notes/domain/search/scoring.dart';
@@ -55,7 +56,7 @@ class NotesNotifier extends Notifier<List<Note>> {
     _search.index(state);
   }
 
-  Future<void> addAt(
+  Future<Note> addAt(
     Offset canvasPoint, {
     required String title,
     required String text,
@@ -71,7 +72,8 @@ class NotesNotifier extends Notifier<List<Note>> {
     );
     state = [...state, n];
     _search.index(state);
-    await save(); // <- make sure this is awaited
+    await save();
+    return n;
   }
 
   void update(Note note) {
@@ -119,6 +121,42 @@ class NotesNotifier extends Notifier<List<Note>> {
     save();
   }
 
+  Future<List<String>> attachImagesFromBytes(
+    String id,
+    List<ImageToAttach> imgs,
+  ) async {
+    if (imgs.isEmpty) {
+      return state.firstWhere((n) => n.id == id).imagePaths;
+    }
+    final appDir = await getApplicationDocumentsDirectory();
+    final noteDir = Directory('${appDir.path}/notes/$id');
+    if (!await noteDir.exists()) await noteDir.create(recursive: true);
+
+    final added = <String>[];
+    for (final img in imgs) {
+      final name = '${DateTime.now().microsecondsSinceEpoch}${img.ext}';
+      final dest = File('${noteDir.path}/$name');
+      await dest.writeAsBytes(img.bytes, flush: true);
+      added.add(dest.path);
+    }
+
+    state = [
+      for (final n in state)
+        if (n.id == id)
+          n.copyWith(
+            imagePaths: [...n.imagePaths, ...added],
+            updatedAt: DateTime.now(),
+          )
+        else
+          n,
+    ];
+    _search.index(state);
+    saveDebounced();
+
+    return state.firstWhere((n) => n.id == id).imagePaths;
+  }
+
+  // Pick from gallery and attach to an existing note.
   Future<void> attachImages(String id) async {
     final addedPaths = <String>[];
 
@@ -127,7 +165,7 @@ class NotesNotifier extends Notifier<List<Note>> {
     final noteDir = Directory('${appDir.path}/notes/$id');
     if (!await noteDir.exists()) await noteDir.create(recursive: true);
 
-    // 1) Try image_picker first (nice gallery UX on Android/iOS)
+    // Try image_picker (best UX on Android/iOS)
     try {
       final picker = ImagePicker();
       final picks = await picker.pickMultiImage(imageQuality: 85);
@@ -143,19 +181,18 @@ class NotesNotifier extends Notifier<List<Note>> {
           addedPaths.add(dest.path);
         }
       }
-    } on PlatformException catch (e) {
-      // Known case: channel error. We'll fall back to file_picker.
-      // debugPrint('image_picker failed: $e');
+    } on PlatformException {
+      // fall through to file_picker below
     } catch (_) {
-      // swallow and fallback
+      // fall through to file_picker below
     }
 
-    // 2) Fallback: file_picker (works across platforms; uses SAF on Android)
+    // Fallback: file_picker (works even when image_picker channel fails)
     if (addedPaths.isEmpty) {
       final res = await FilePicker.platform.pickFiles(
         type: FileType.image,
         allowMultiple: true,
-        withData: true, // get bytes even if path is null
+        withData: true,
       );
       if (res != null && res.files.isNotEmpty) {
         for (final f in res.files) {
@@ -169,13 +206,13 @@ class NotesNotifier extends Notifier<List<Note>> {
           final dest = File(
             '${noteDir.path}/${DateTime.now().microsecondsSinceEpoch}$ext',
           );
-          await dest.writeAsBytes(bytes);
+          await dest.writeAsBytes(bytes, flush: true);
           addedPaths.add(dest.path);
         }
       }
     }
 
-    if (addedPaths.isEmpty) return; // nothing selected
+    if (addedPaths.isEmpty) return;
 
     // Update state
     state = [

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gk_notes/data/models/image_to_attach.dart';
 import 'package:gk_notes/features/canvas/widgets/canvas_viewport.dart';
 import 'package:gk_notes/features/canvas/widgets/view_note_dialog.dart';
 import 'package:share_plus/share_plus.dart';
@@ -86,9 +87,26 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
         controller: canvas,
         canvasSize: canvasSize,
         notes: notes,
-        onAddAt: (pos, {required title, required text, int? colorValue}) => ref
-            .read(notesProvider.notifier)
-            .addAt(pos, title: title, text: text, colorValue: colorValue),
+        onAddAt:
+            (
+              pos, {
+              required title,
+              required text,
+              int? colorValue,
+              List<ImageToAttach>? images,
+            }) async {
+              // create the note & get its id
+              final newNote = await ref
+                  .read(notesProvider.notifier)
+                  .addAt(pos, title: title, text: text, colorValue: colorValue);
+              if (images != null && images.isNotEmpty) {
+                await ref
+                    .read(notesProvider.notifier)
+                    .attachImagesFromBytes(newNote.id, images);
+              }
+
+              return newNote;
+            },
         onMove: (id, delta) => ref.read(notesProvider.notifier).move(id, delta),
         onView: _view,
       ),

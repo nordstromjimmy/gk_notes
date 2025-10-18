@@ -18,8 +18,7 @@ Future<NoteEditOutcome?> showViewNoteDialog({
       final screenW = MediaQuery.of(ctx).size.width;
       final dialogWidth = (screenW * 0.92).clamp(360.0, 720.0);
       const bg = Color(0xFF38464F);
-      const fg = Colors.white; // main text
-      const fgMuted = Colors.white70; // secondary text
+      const fgMuted = Colors.white70;
 
       return AlertDialog(
         insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
@@ -31,7 +30,7 @@ Future<NoteEditOutcome?> showViewNoteDialog({
           children: [
             const Text(
               'Anteckning',
-              style: TextStyle(color: fg, fontWeight: FontWeight.w600),
+              style: TextStyle(color: fgMuted, fontWeight: FontWeight.w600),
             ),
             const Spacer(),
             IconButton(
@@ -53,7 +52,7 @@ Future<NoteEditOutcome?> showViewNoteDialog({
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: fg,
+                    color: fgMuted,
                   ),
                 ),
               if (note.title.isNotEmpty) const SizedBox(height: 12),
@@ -69,7 +68,7 @@ Future<NoteEditOutcome?> showViewNoteDialog({
                   'Bilder',
                   style: Theme.of(
                     ctx,
-                  ).textTheme.labelLarge?.copyWith(color: fg),
+                  ).textTheme.labelLarge?.copyWith(color: fgMuted),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
