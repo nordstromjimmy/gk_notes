@@ -54,7 +54,7 @@ class NoteCard extends StatelessWidget {
             if (note.text.isNotEmpty)
               Text(
                 note.text,
-                maxLines: null,
+                maxLines: 12,
                 overflow: TextOverflow.visible,
 
                 style: TextStyle(color: Colors.black),

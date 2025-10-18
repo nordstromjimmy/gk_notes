@@ -3,7 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gk_notes/features/canvas/widgets/canvas_viewport.dart';
-import 'package:gk_notes/features/canvas/widgets/edit_note_dialog.dart';
+import 'package:gk_notes/features/canvas/widgets/view_note_dialog.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:vector_math/vector_math_64.dart' hide Colors;
 import '../../data/models/note.dart';
@@ -90,8 +90,7 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
             .read(notesProvider.notifier)
             .addAt(pos, title: title, text: text, colorValue: colorValue),
         onMove: (id, delta) => ref.read(notesProvider.notifier).move(id, delta),
-
-        onEdit: _edit,
+        onView: _view,
       ),
     );
   }
@@ -124,8 +123,20 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
     );
   }
 
-  Future<void> _edit(Note note) async {
-    final outcome = await showEditNoteDialog(context: context, note: note);
+  Future<void> _view(Note note) async {
+    final outcome = await showViewNoteDialog(
+      context: context,
+      note: note,
+      onAddImages: (id) async {
+        await ref.read(notesProvider.notifier).attachImages(id);
+        // return fresh list so the dialog updates without closing
+        return ref.read(notesProvider).firstWhere((n) => n.id == id).imagePaths;
+      },
+      onRemoveImage: (id, path) async {
+        await ref.read(notesProvider.notifier).removeImage(id, path);
+        return ref.read(notesProvider).firstWhere((n) => n.id == id).imagePaths;
+      },
+    );
     if (outcome == null) return;
     if (outcome.deleted) {
       ref.read(notesProvider.notifier).remove(note.id);

@@ -6,14 +6,14 @@ class DraggableNote extends StatelessWidget {
   const DraggableNote({
     super.key,
     required this.note,
-    required this.onEdit,
+    required this.onView,
     required this.onDrag,
     required this.getScale,
     this.onTogglePin,
   });
 
   final Note note;
-  final VoidCallback onEdit;
+  final VoidCallback onView;
   final ValueChanged<Offset> onDrag;
   final double Function() getScale;
   final VoidCallback? onTogglePin;
@@ -23,7 +23,7 @@ class DraggableNote extends StatelessWidget {
     final pinned = note.pinned;
 
     return GestureDetector(
-      onTap: onEdit,
+      onTap: onView,
       onPanUpdate: pinned
           ? null
           : (details) {

@@ -1,8 +1,15 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gk_notes/data/models/repositories/hive_note_repository.dart';
 import 'package:gk_notes/data/models/repositories/note_repository.dart';
 import 'package:gk_notes/domain/search/scoring.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../data/models/note.dart';
 import '../../domain/search/search_service.dart';
@@ -110,6 +117,98 @@ class NotesNotifier extends Notifier<List<Note>> {
     state = state.where((n) => n.id != id).toList();
     _search.index(state);
     save();
+  }
+
+  Future<void> attachImages(String id) async {
+    final addedPaths = <String>[];
+
+    // Ensure note folder
+    final appDir = await getApplicationDocumentsDirectory();
+    final noteDir = Directory('${appDir.path}/notes/$id');
+    if (!await noteDir.exists()) await noteDir.create(recursive: true);
+
+    // 1) Try image_picker first (nice gallery UX on Android/iOS)
+    try {
+      final picker = ImagePicker();
+      final picks = await picker.pickMultiImage(imageQuality: 85);
+      if (picks.isNotEmpty) {
+        for (final x in picks) {
+          final ext = p.extension(x.name).isNotEmpty
+              ? p.extension(x.name)
+              : '.jpg';
+          final dest = File(
+            '${noteDir.path}/${DateTime.now().microsecondsSinceEpoch}$ext',
+          );
+          await File(x.path).copy(dest.path);
+          addedPaths.add(dest.path);
+        }
+      }
+    } on PlatformException catch (e) {
+      // Known case: channel error. We'll fall back to file_picker.
+      // debugPrint('image_picker failed: $e');
+    } catch (_) {
+      // swallow and fallback
+    }
+
+    // 2) Fallback: file_picker (works across platforms; uses SAF on Android)
+    if (addedPaths.isEmpty) {
+      final res = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: true,
+        withData: true, // get bytes even if path is null
+      );
+      if (res != null && res.files.isNotEmpty) {
+        for (final f in res.files) {
+          final bytes =
+              f.bytes ??
+              (f.path != null ? await File(f.path!).readAsBytes() : null);
+          if (bytes == null) continue;
+          final ext = p.extension(f.name).isNotEmpty
+              ? p.extension(f.name)
+              : '.jpg';
+          final dest = File(
+            '${noteDir.path}/${DateTime.now().microsecondsSinceEpoch}$ext',
+          );
+          await dest.writeAsBytes(bytes);
+          addedPaths.add(dest.path);
+        }
+      }
+    }
+
+    if (addedPaths.isEmpty) return; // nothing selected
+
+    // Update state
+    state = [
+      for (final n in state)
+        if (n.id == id)
+          n.copyWith(
+            imagePaths: [...n.imagePaths, ...addedPaths],
+            updatedAt: DateTime.now(),
+          )
+        else
+          n,
+    ];
+    _search.index(state);
+    saveDebounced();
+  }
+
+  Future<void> removeImage(String id, String path) async {
+    state = [
+      for (final n in state)
+        if (n.id == id)
+          n.copyWith(
+            imagePaths: n.imagePaths.where((p) => p != path).toList(),
+            updatedAt: DateTime.now(),
+          )
+        else
+          n,
+    ];
+    try {
+      final f = File(path);
+      if (await f.exists()) await f.delete();
+    } catch (_) {}
+    _search.index(state);
+    saveDebounced();
   }
 
   // ---- persistence helpers ----

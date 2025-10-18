@@ -20,7 +20,7 @@ class CanvasViewport extends ConsumerWidget {
     required this.notes,
     required this.onAddAt,
     required this.onMove,
-    required this.onEdit,
+    required this.onView,
   });
 
   final CanvasController controller;
@@ -36,7 +36,7 @@ class CanvasViewport extends ConsumerWidget {
   onAddAt;
 
   final void Function(String id, Offset delta) onMove;
-  final ValueChanged<Note> onEdit;
+  final ValueChanged<Note> onView;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -99,7 +99,7 @@ class CanvasViewport extends ConsumerWidget {
                   top: n.pos.dy,
                   child: DraggableNote(
                     note: n,
-                    onEdit: () => onEdit(n),
+                    onView: () => onView(n),
                     getScale: () => controller.transformController.value
                         .getMaxScaleOnAxis(),
                     onTogglePin: () =>

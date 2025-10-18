@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:gk_notes/theme/note_colors.dart';
 import '../../../data/models/note.dart';
@@ -15,9 +16,17 @@ class NoteEditOutcome {
   });
 }
 
+/// Optional callbacks let the dialog update images without depending on Riverpod.
+/// Each callback should return the **updated list of image paths** for the note.
+typedef AddImagesFn = Future<List<String>> Function(String noteId);
+typedef RemoveImageFn =
+    Future<List<String>> Function(String noteId, String path);
+
 Future<NoteEditOutcome?> showEditNoteDialog({
   required BuildContext context,
   required Note note,
+  AddImagesFn? onAddImages, // <-- NEW (optional)
+  RemoveImageFn? onRemoveImage, // <-- NEW (optional)
 }) async {
   final titleCtl = TextEditingController(text: note.title);
   final bodyCtl = TextEditingController(text: note.text);
@@ -29,6 +38,8 @@ Future<NoteEditOutcome?> showEditNoteDialog({
       final dialogWidth = (screenW * 0.92).clamp(360.0, 720.0);
 
       int selected = noteColorIndexOf(note.colorValue);
+      // Local, live image list inside the dialog (so UI can refresh instantly)
+      List<String> images = List<String>.from(note.imagePaths);
 
       return StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
@@ -63,12 +74,12 @@ Future<NoteEditOutcome?> showEditNoteDialog({
                                 style: TextStyle(color: Colors.blueGrey),
                               ),
                             ),
-                            Spacer(),
+                            const Spacer(),
                             FilledButton.tonal(
                               onPressed: () => Navigator.pop(c2, true),
-                              style: ButtonStyle(
-                                backgroundColor: WidgetStatePropertyAll<Color?>(
-                                  Colors.blueGrey[800],
+                              style: const ButtonStyle(
+                                backgroundColor: WidgetStatePropertyAll<Color>(
+                                  Colors.blueGrey,
                                 ),
                               ),
                               child: const Text(
@@ -88,11 +99,14 @@ Future<NoteEditOutcome?> showEditNoteDialog({
               ),
             ],
           ),
+
           content: SizedBox(
             width: dialogWidth,
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Title
                 TextField(
                   controller: titleCtl,
                   textInputAction: TextInputAction.next,
@@ -103,6 +117,8 @@ Future<NoteEditOutcome?> showEditNoteDialog({
                   ),
                 ),
                 const SizedBox(height: 12),
+
+                // Body
                 TextField(
                   controller: bodyCtl,
                   minLines: 3,
@@ -114,13 +130,9 @@ Future<NoteEditOutcome?> showEditNoteDialog({
                   ),
                 ),
                 const SizedBox(height: 16),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Färg',
-                    style: Theme.of(ctx).textTheme.labelLarge,
-                  ),
-                ),
+
+                // Color picker
+                Text('Färg', style: Theme.of(ctx).textTheme.labelLarge),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -146,9 +158,86 @@ Future<NoteEditOutcome?> showEditNoteDialog({
                       ),
                   ],
                 ),
+
+                const SizedBox(height: 16),
+
+                // Images section
+                Row(
+                  children: [
+                    Text('Bilder', style: Theme.of(ctx).textTheme.labelLarge),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: (onAddImages == null)
+                          ? null
+                          : () async {
+                              final updated = await onAddImages(note.id);
+                              setState(() => images = updated);
+                            },
+                      icon: const Icon(Icons.add_photo_alternate_outlined),
+                      label: const Text('Lägg till'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                SizedBox(
+                  height: 90,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: images.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (_, i) {
+                      final p = images[i];
+                      return Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(
+                              File(p),
+                              width: 90,
+                              height: 90,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 90,
+                                height: 90,
+                                color: Colors.black26,
+                                alignment: Alignment.center,
+                                child: const Icon(Icons.broken_image_outlined),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: IconButton(
+                              tooltip: 'Ta bort',
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints.tightFor(
+                                width: 28,
+                                height: 28,
+                              ),
+                              icon: const Icon(Icons.close, size: 18),
+                              color: Colors.black87,
+                              onPressed: (onRemoveImage == null)
+                                  ? null
+                                  : () async {
+                                      final updated = await onRemoveImage(
+                                        note.id,
+                                        p,
+                                      );
+                                      setState(() => images = updated);
+                                    },
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
           ),
+
           actions: [
             Row(
               children: [
@@ -159,7 +248,7 @@ Future<NoteEditOutcome?> showEditNoteDialog({
                     style: TextStyle(color: Colors.blueGrey),
                   ),
                 ),
-                Spacer(),
+                const Spacer(),
                 FilledButton(
                   onPressed: () => Navigator.pop(
                     ctx,
@@ -169,12 +258,11 @@ Future<NoteEditOutcome?> showEditNoteDialog({
                       kNoteColors[selected].value,
                     ),
                   ),
-                  style: ButtonStyle(
-                    backgroundColor: WidgetStatePropertyAll<Color?>(
-                      Colors.blueGrey[800],
+                  style: const ButtonStyle(
+                    backgroundColor: WidgetStatePropertyAll<Color>(
+                      Colors.blueGrey,
                     ),
                   ),
-
                   child: const Text(
                     'Spara',
                     style: TextStyle(color: Colors.white),

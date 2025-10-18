@@ -21,6 +21,8 @@ class Note {
   // State
   bool pinned = false;
 
+  List<String> imagePaths = const [];
+
   // Timestamps
   late DateTime createdAt;
   late DateTime updatedAt;
@@ -58,6 +60,7 @@ class Note {
     Size? size,
     int? colorValue,
     bool? pinned,
+    List<String>? imagePaths,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -73,6 +76,7 @@ class Note {
     n.h = s.height;
     n.colorValue = colorValue ?? this.colorValue;
     n.pinned = pinned ?? this.pinned;
+    n.imagePaths = imagePaths ?? this.imagePaths;
     n.createdAt = createdAt ?? this.createdAt;
     n.updatedAt = updatedAt ?? this.updatedAt;
     return n;
@@ -89,6 +93,7 @@ class Note {
     'h': h,
     'color': colorValue,
     'pinned': pinned,
+    'images': imagePaths,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
@@ -104,6 +109,7 @@ class Note {
     n.h = (j['h'] as num).toDouble();
     n.colorValue = (j['color'] as num).toInt();
     n.pinned = (j['pinned'] as bool?) ?? false;
+    n.imagePaths = (j['images'] as List?)?.cast<String>() ?? const [];
     n.createdAt = DateTime.parse(j['createdAt'] as String);
     n.updatedAt = DateTime.parse(j['updatedAt'] as String);
     return n;
