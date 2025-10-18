@@ -18,6 +18,9 @@ class Note {
   // Styling
   late int colorValue;
 
+  // State
+  bool pinned = false;
+
   // Timestamps
   late DateTime createdAt;
   late DateTime updatedAt;
@@ -54,6 +57,7 @@ class Note {
     Offset? pos,
     Size? size,
     int? colorValue,
+    bool? pinned,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -68,6 +72,7 @@ class Note {
     n.w = s.width;
     n.h = s.height;
     n.colorValue = colorValue ?? this.colorValue;
+    n.pinned = pinned ?? this.pinned;
     n.createdAt = createdAt ?? this.createdAt;
     n.updatedAt = updatedAt ?? this.updatedAt;
     return n;
@@ -83,6 +88,7 @@ class Note {
     'w': w,
     'h': h,
     'color': colorValue,
+    'pinned': pinned,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
@@ -97,6 +103,7 @@ class Note {
     n.w = (j['w'] as num).toDouble();
     n.h = (j['h'] as num).toDouble();
     n.colorValue = (j['color'] as num).toInt();
+    n.pinned = (j['pinned'] as bool?) ?? false;
     n.createdAt = DateTime.parse(j['createdAt'] as String);
     n.updatedAt = DateTime.parse(j['updatedAt'] as String);
     return n;

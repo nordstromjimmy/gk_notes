@@ -22,6 +22,18 @@ class NotesNotifier extends Notifier<List<Note>> {
   late final SearchService _search;
   final _uuid = const Uuid();
 
+  void togglePin(String id) {
+    state = [
+      for (final n in state)
+        if (n.id == id)
+          n.copyWith(pinned: !n.pinned, updatedAt: DateTime.now())
+        else
+          n,
+    ];
+    _search.index(state);
+    saveDebounced();
+  }
+
   @override
   List<Note> build() {
     _repo = ref.read(repositoryProvider);
@@ -68,7 +80,9 @@ class NotesNotifier extends Notifier<List<Note>> {
     state = [
       for (final n in state)
         if (n.id == id)
-          n.copyWith(pos: n.pos + delta, updatedAt: DateTime.now())
+          (n.pinned)
+              ? n
+              : n.copyWith(pos: n.pos + delta, updatedAt: DateTime.now())
         else
           n,
     ];

@@ -90,6 +90,7 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
             .read(notesProvider.notifier)
             .addAt(pos, title: title, text: text, colorValue: colorValue),
         onMove: (id, delta) => ref.read(notesProvider.notifier).move(id, delta),
+
         onEdit: _edit,
       ),
     );
@@ -125,7 +126,7 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
 
   Future<void> _edit(Note note) async {
     final outcome = await showEditNoteDialog(context: context, note: note);
-    if (outcome == null) return; // cancelled
+    if (outcome == null) return;
     if (outcome.deleted) {
       ref.read(notesProvider.notifier).remove(note.id);
       return;
@@ -169,7 +170,6 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
       replaceExisting: false,
     );
 
-    //await repo.load();
     await ref.read(notesProvider.notifier).reload();
 
     if (mounted) {

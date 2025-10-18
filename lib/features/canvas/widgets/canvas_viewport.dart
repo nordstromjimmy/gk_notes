@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gk_notes/features/canvas/canvas_controller.dart';
+import 'package:gk_notes/features/canvas/providers.dart';
 import 'package:gk_notes/features/canvas/widgets/create_note_dialog.dart';
 import 'package:gk_notes/features/canvas/widgets/draggable_note.dart';
 import 'package:gk_notes/features/canvas/widgets/grid_painter.dart';
@@ -99,28 +100,28 @@ class CanvasViewport extends ConsumerWidget {
                   child: DraggableNote(
                     note: n,
                     onEdit: () => onEdit(n),
+                    getScale: () => controller.transformController.value
+                        .getMaxScaleOnAxis(),
+                    onTogglePin: () =>
+                        ref.read(notesProvider.notifier).togglePin(n.id),
                     onDrag: (delta) {
-                      final newPos = n.pos + delta;
+                      final proposed = n.pos + delta;
 
-                      final clampedX = newPos.dx.clamp(
+                      final clampedX = proposed.dx.clamp(
                         0,
                         canvasSize.width - n.size.width,
                       );
-                      final clampedY = newPos.dy.clamp(
+                      final clampedY = proposed.dy.clamp(
                         0,
                         canvasSize.height - n.size.height,
                       );
 
-                      // convert back to a delta from the current position
                       final clampedDelta = Offset(
                         clampedX - n.pos.dx,
                         clampedY - n.pos.dy,
                       );
-
                       onMove(n.id, clampedDelta);
                     },
-                    getScale: () => controller.transformController.value
-                        .getMaxScaleOnAxis(),
                   ),
                 ),
             ],
