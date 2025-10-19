@@ -1,15 +1,13 @@
 import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gk_notes/core/image_compress.dart';
 import 'package:gk_notes/data/models/image_to_attach.dart';
 import 'package:gk_notes/data/models/repositories/hive_note_repository.dart';
 import 'package:gk_notes/data/models/repositories/note_repository.dart';
 import 'package:gk_notes/domain/search/scoring.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../data/models/note.dart';
@@ -134,9 +132,14 @@ class NotesNotifier extends Notifier<List<Note>> {
 
     final added = <String>[];
     for (final img in imgs) {
-      final name = '${DateTime.now().microsecondsSinceEpoch}${img.ext}';
+      final compressed = await compressImageBytes(
+        img.bytes,
+        maxDimension: 1600,
+        quality: 82,
+      );
+      final name = '${DateTime.now().microsecondsSinceEpoch}.jpg';
       final dest = File('${noteDir.path}/$name');
-      await dest.writeAsBytes(img.bytes, flush: true);
+      await dest.writeAsBytes(compressed, flush: true);
       added.add(dest.path);
     }
 
@@ -168,16 +171,19 @@ class NotesNotifier extends Notifier<List<Note>> {
     // Try image_picker (best UX on Android/iOS)
     try {
       final picker = ImagePicker();
-      final picks = await picker.pickMultiImage(imageQuality: 85);
+      final picks = await picker.pickMultiImage(imageQuality: 100);
       if (picks.isNotEmpty) {
         for (final x in picks) {
-          final ext = p.extension(x.name).isNotEmpty
-              ? p.extension(x.name)
-              : '.jpg';
-          final dest = File(
-            '${noteDir.path}/${DateTime.now().microsecondsSinceEpoch}$ext',
+          final bytes = await File(x.path).readAsBytes();
+          final compressed = await compressImageBytes(
+            bytes,
+            maxDimension: 1600,
+            quality: 82,
           );
-          await File(x.path).copy(dest.path);
+          final dest = File(
+            '${noteDir.path}/${DateTime.now().microsecondsSinceEpoch}.jpg',
+          );
+          await dest.writeAsBytes(compressed, flush: true);
           addedPaths.add(dest.path);
         }
       }
@@ -196,17 +202,19 @@ class NotesNotifier extends Notifier<List<Note>> {
       );
       if (res != null && res.files.isNotEmpty) {
         for (final f in res.files) {
-          final bytes =
+          final Uint8List? bytes =
               f.bytes ??
               (f.path != null ? await File(f.path!).readAsBytes() : null);
           if (bytes == null) continue;
-          final ext = p.extension(f.name).isNotEmpty
-              ? p.extension(f.name)
-              : '.jpg';
-          final dest = File(
-            '${noteDir.path}/${DateTime.now().microsecondsSinceEpoch}$ext',
+          final compressed = await compressImageBytes(
+            bytes,
+            maxDimension: 1600,
+            quality: 82,
           );
-          await dest.writeAsBytes(bytes, flush: true);
+          final dest = File(
+            '${noteDir.path}/${DateTime.now().microsecondsSinceEpoch}.jpg',
+          );
+          await dest.writeAsBytes(compressed, flush: true);
           addedPaths.add(dest.path);
         }
       }

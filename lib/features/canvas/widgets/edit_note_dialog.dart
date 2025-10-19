@@ -216,8 +216,11 @@ Future<NoteEditOutcome?> showEditNoteDialog({
                                 width: 28,
                                 height: 28,
                               ),
-                              icon: const Icon(Icons.close, size: 18),
-                              color: Colors.black87,
+                              icon: const Icon(
+                                Icons.highlight_remove,
+                                size: 22,
+                              ),
+                              color: Colors.red,
                               onPressed: (onRemoveImage == null)
                                   ? null
                                   : () async {
