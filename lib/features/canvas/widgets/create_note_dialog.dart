@@ -10,15 +10,25 @@ class CreateNoteResult {
   final String title;
   final String text;
   final int colorValue;
-  final List<ImageToAttach> images;
-  const CreateNoteResult(this.title, this.text, this.colorValue, this.images);
+  final List<ImageToAttach> images; // images as bytes (same as before)
+  final List<String> videoPaths; // NEW: source file paths for videos
+  const CreateNoteResult(
+    this.title,
+    this.text,
+    this.colorValue,
+    this.images, {
+    this.videoPaths = const [],
+  });
 }
 
 Future<CreateNoteResult?> showCreateNoteDialog(BuildContext context) async {
   final titleCtl = TextEditingController();
   final bodyCtl = TextEditingController();
   int selected = 0;
-  List<ImageToAttach> picked = [];
+
+  // local state for picked media
+  List<ImageToAttach> pickedImages = [];
+  List<String> pickedVideos = []; // absolute file paths (no bytes)
 
   final res = await showDialog<CreateNoteResult>(
     context: context,
@@ -44,7 +54,27 @@ Future<CreateNoteResult?> showCreateNoteDialog(BuildContext context) async {
               : '.jpg';
           next.add(ImageToAttach(bytes, ext));
         }
-        setState(() => picked = [...picked, ...next]);
+        setState(() => pickedImages = [...pickedImages, ...next]);
+      }
+
+      Future<void> pickVideos(Function(void Function()) setState) async {
+        final res = await FilePicker.platform.pickFiles(
+          type: FileType.video,
+          allowMultiple: true,
+          withData: false, // don't pull huge video bytes into memory
+        );
+        if (res == null || res.files.isEmpty) return;
+
+        final next = <String>[];
+        for (final f in res.files) {
+          if (f.path != null && f.path!.isNotEmpty) {
+            next.add(f.path!);
+          }
+          // If path is null (rare with SAF for videos), we skip. Handling
+          // content streams is possible but heavier—let's keep it simple.
+        }
+        if (next.isEmpty) return;
+        setState(() => pickedVideos = [...pickedVideos, ...next]);
       }
 
       return StatefulBuilder(
@@ -62,6 +92,7 @@ Future<CreateNoteResult?> showCreateNoteDialog(BuildContext context) async {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Title
                 TextField(
                   controller: titleCtl,
                   autofocus: true,
@@ -73,6 +104,8 @@ Future<CreateNoteResult?> showCreateNoteDialog(BuildContext context) async {
                   ),
                 ),
                 const SizedBox(height: 12),
+
+                // Body
                 TextField(
                   controller: bodyCtl,
                   minLines: 3,
@@ -121,7 +154,7 @@ Future<CreateNoteResult?> showCreateNoteDialog(BuildContext context) async {
 
                 const SizedBox(height: 16),
 
-                // Images
+                // Images section
                 Row(
                   children: [
                     Text('Bilder', style: Theme.of(ctx).textTheme.labelLarge),
@@ -138,10 +171,10 @@ Future<CreateNoteResult?> showCreateNoteDialog(BuildContext context) async {
                   height: 90,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
-                    itemCount: picked.length,
+                    itemCount: pickedImages.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (_, i) {
-                      final img = picked[i];
+                      final img = pickedImages[i];
                       return Stack(
                         children: [
                           ClipRRect(
@@ -165,9 +198,9 @@ Future<CreateNoteResult?> showCreateNoteDialog(BuildContext context) async {
                               ),
                               icon: const Icon(Icons.close, size: 18),
                               onPressed: () => setState(() {
-                                picked = [
-                                  for (int j = 0; j < picked.length; j++)
-                                    if (j != i) picked[j],
+                                pickedImages = [
+                                  for (int j = 0; j < pickedImages.length; j++)
+                                    if (j != i) pickedImages[j],
                                 ];
                               }),
                             ),
@@ -175,6 +208,46 @@ Future<CreateNoteResult?> showCreateNoteDialog(BuildContext context) async {
                         ],
                       );
                     },
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Videos section
+                Row(
+                  children: [
+                    Text('Video', style: Theme.of(ctx).textTheme.labelLarge),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () => pickVideos(setState),
+                      icon: const Icon(Icons.video_collection_outlined),
+                      label: const Text('Lägg till'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Show simple chips with file names; thumbnails will be generated later after note is created
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (int i = 0; i < pickedVideos.length; i++)
+                        Chip(
+                          label: Text(
+                            p.basename(pickedVideos[i]),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          deleteIcon: const Icon(Icons.close),
+                          onDeleted: () => setState(() {
+                            pickedVideos = [
+                              for (int j = 0; j < pickedVideos.length; j++)
+                                if (j != i) pickedVideos[j],
+                            ];
+                          }),
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -191,7 +264,7 @@ Future<CreateNoteResult?> showCreateNoteDialog(BuildContext context) async {
                     style: TextStyle(color: Colors.blueGrey),
                   ),
                 ),
-                Spacer(),
+                const Spacer(),
                 FilledButton(
                   onPressed: () {
                     Navigator.pop(
@@ -200,13 +273,15 @@ Future<CreateNoteResult?> showCreateNoteDialog(BuildContext context) async {
                         titleCtl.text.trim(),
                         bodyCtl.text,
                         kNoteColors[selected].value,
-                        picked,
+                        pickedImages,
+                        videoPaths:
+                            pickedVideos, // <-- include the selected videos
                       ),
                     );
                   },
-                  style: ButtonStyle(
-                    backgroundColor: WidgetStatePropertyAll<Color?>(
-                      Colors.blueGrey[800],
+                  style: const ButtonStyle(
+                    backgroundColor: MaterialStatePropertyAll<Color>(
+                      Colors.blueGrey,
                     ),
                   ),
                   child: const Text(

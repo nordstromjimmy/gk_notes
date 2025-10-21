@@ -1,6 +1,7 @@
 // lib/features/canvas/widgets/view_note_dialog.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 import '../../../data/models/note.dart';
 import 'edit_note_dialog.dart';
 
@@ -11,6 +12,8 @@ Future<NoteEditOutcome?> showViewNoteDialog({
   required Note note,
   AddImagesFn? onAddImages,
   RemoveImageFn? onRemoveImage,
+  AddVideosFn? onAddVideos,
+  RemoveVideoFn? onRemoveVideo,
 }) async {
   final action = await showDialog<_ViewAction>(
     context: context,
@@ -110,6 +113,63 @@ Future<NoteEditOutcome?> showViewNoteDialog({
                 ),
                 const SizedBox(height: 8),
               ],
+              if (note.videoPaths.isNotEmpty) ...[
+                Text(
+                  'Video',
+                  style: Theme.of(
+                    ctx,
+                  ).textTheme.labelLarge?.copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 96,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: note.videoPaths.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (_, i) {
+                      final thumb = (i < note.videoThumbPaths.length)
+                          ? note.videoThumbPaths[i]
+                          : null;
+                      return GestureDetector(
+                        onTap: () =>
+                            _showVideoPlayer(context, note.videoPaths[i]),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: thumb != null && thumb.isNotEmpty
+                                  ? Image.file(
+                                      File(thumb),
+                                      width: 160,
+                                      height: 96,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          _thumbFallback(),
+                                    )
+                                  : _thumbFallback(),
+                            ),
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: Colors.black45,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
             ],
           ),
         ),
@@ -144,6 +204,8 @@ Future<NoteEditOutcome?> showViewNoteDialog({
     note: note,
     onAddImages: onAddImages,
     onRemoveImage: onRemoveImage,
+    onAddVideos: onAddVideos,
+    onRemoveVideo: onRemoveVideo,
   );
 }
 
@@ -196,4 +258,109 @@ void _showImageViewer(
       ),
     ),
   );
+}
+
+// helper
+Widget _thumbFallback() => Container(
+  width: 160,
+  height: 96,
+  color: Colors.black26,
+  alignment: Alignment.center,
+  child: const Icon(Icons.videocam_outlined, color: Colors.white70),
+);
+
+void _showVideoPlayer(BuildContext context, String path) {
+  showDialog(
+    context: context,
+    barrierColor: Colors.black.withOpacity(0.9),
+    builder: (_) => _VideoPlayerDialog(path: path),
+  );
+}
+
+class _VideoPlayerDialog extends StatefulWidget {
+  const _VideoPlayerDialog({required this.path});
+  final String path;
+
+  @override
+  State<_VideoPlayerDialog> createState() => _VideoPlayerDialogState();
+}
+
+class _VideoPlayerDialogState extends State<_VideoPlayerDialog> {
+  late VideoPlayerController _ctl;
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctl = VideoPlayerController.file(File(widget.path))
+      ..initialize().then((_) {
+        setState(() => _ready = true);
+        _ctl.play();
+      });
+  }
+
+  @override
+  void dispose() {
+    _ctl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.black,
+      insetPadding: const EdgeInsets.all(8),
+      child: Stack(
+        children: [
+          AspectRatio(
+            aspectRatio: _ready ? _ctl.value.aspectRatio : 16 / 9,
+            child: _ready
+                ? VideoPlayer(_ctl)
+                : const Center(child: CircularProgressIndicator()),
+          ),
+          Positioned(
+            right: 8,
+            top: 8,
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+          // Play/pause tap
+          Positioned.fill(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  if (!_ready) return;
+                  if (_ctl.value.isPlaying) {
+                    _ctl.pause();
+                  } else {
+                    _ctl.play();
+                  }
+                  setState(() {});
+                },
+              ),
+            ),
+          ),
+          // Simple scrub progress
+          if (_ready)
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 8,
+              child: VideoProgressIndicator(
+                _ctl,
+                allowScrubbing: true,
+                colors: VideoProgressColors(
+                  playedColor: Colors.white,
+                  bufferedColor: Colors.white30,
+                  backgroundColor: Colors.white24,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }

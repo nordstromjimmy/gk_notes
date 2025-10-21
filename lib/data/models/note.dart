@@ -22,6 +22,8 @@ class Note {
   bool pinned = false;
 
   List<String> imagePaths = const [];
+  List<String> videoPaths = const [];
+  List<String> videoThumbPaths = const [];
 
   // Timestamps
   late DateTime createdAt;
@@ -61,6 +63,8 @@ class Note {
     int? colorValue,
     bool? pinned,
     List<String>? imagePaths,
+    List<String>? videoPaths,
+    List<String>? videoThumbPaths,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -77,6 +81,8 @@ class Note {
     n.colorValue = colorValue ?? this.colorValue;
     n.pinned = pinned ?? this.pinned;
     n.imagePaths = imagePaths ?? this.imagePaths;
+    n.videoPaths = videoPaths ?? this.videoPaths;
+    n.videoThumbPaths = videoThumbPaths ?? this.videoThumbPaths;
     n.createdAt = createdAt ?? this.createdAt;
     n.updatedAt = updatedAt ?? this.updatedAt;
     return n;
@@ -94,6 +100,8 @@ class Note {
     'color': colorValue,
     'pinned': pinned,
     'images': imagePaths,
+    'videos': videoPaths,
+    'videoThumbs': videoThumbPaths,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
@@ -110,6 +118,8 @@ class Note {
     n.colorValue = (j['color'] as num).toInt();
     n.pinned = (j['pinned'] as bool?) ?? false;
     n.imagePaths = (j['images'] as List?)?.cast<String>() ?? const [];
+    n.videoPaths = (j['videos'] as List?)?.cast<String>() ?? const [];
+    n.videoThumbPaths = (j['videoThumbs'] as List?)?.cast<String>() ?? const [];
     n.createdAt = DateTime.parse(j['createdAt'] as String);
     n.updatedAt = DateTime.parse(j['updatedAt'] as String);
     return n;

@@ -16,17 +16,27 @@ class NoteEditOutcome {
   });
 }
 
-/// Optional callbacks let the dialog update images without depending on Riverpod.
-/// Each callback should return the **updated list of image paths** for the note.
 typedef AddImagesFn = Future<List<String>> Function(String noteId);
 typedef RemoveImageFn =
     Future<List<String>> Function(String noteId, String path);
 
+class VideoUpdate {
+  final List<String> videoPaths;
+  final List<String> thumbPaths;
+  const VideoUpdate(this.videoPaths, this.thumbPaths);
+}
+
+typedef AddVideosFn = Future<VideoUpdate> Function(String noteId);
+typedef RemoveVideoFn =
+    Future<VideoUpdate> Function(String noteId, String videoPath);
+
 Future<NoteEditOutcome?> showEditNoteDialog({
   required BuildContext context,
   required Note note,
-  AddImagesFn? onAddImages, // <-- NEW (optional)
-  RemoveImageFn? onRemoveImage, // <-- NEW (optional)
+  AddImagesFn? onAddImages,
+  RemoveImageFn? onRemoveImage,
+  AddVideosFn? onAddVideos,
+  RemoveVideoFn? onRemoveVideo,
 }) async {
   final titleCtl = TextEditingController(text: note.title);
   final bodyCtl = TextEditingController(text: note.text);
@@ -38,8 +48,10 @@ Future<NoteEditOutcome?> showEditNoteDialog({
       final dialogWidth = (screenW * 0.92).clamp(360.0, 720.0);
 
       int selected = noteColorIndexOf(note.colorValue);
-      // Local, live image list inside the dialog (so UI can refresh instantly)
+
       List<String> images = List<String>.from(note.imagePaths);
+      List<String> videos = List<String>.from(note.videoPaths);
+      List<String> videoThumbs = List<String>.from(note.videoThumbPaths);
 
       return StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
@@ -78,9 +90,10 @@ Future<NoteEditOutcome?> showEditNoteDialog({
                             FilledButton.tonal(
                               onPressed: () => Navigator.pop(c2, true),
                               style: const ButtonStyle(
-                                backgroundColor: WidgetStatePropertyAll<Color>(
-                                  Colors.blueGrey,
-                                ),
+                                backgroundColor:
+                                    MaterialStatePropertyAll<Color>(
+                                      Colors.blueGrey,
+                                    ),
                               ),
                               child: const Text(
                                 'Radera',
@@ -161,7 +174,7 @@ Future<NoteEditOutcome?> showEditNoteDialog({
 
                 const SizedBox(height: 16),
 
-                // Images section
+                // -------- Images --------
                 Row(
                   children: [
                     Text('Bilder', style: Theme.of(ctx).textTheme.labelLarge),
@@ -179,7 +192,6 @@ Future<NoteEditOutcome?> showEditNoteDialog({
                   ],
                 ),
                 const SizedBox(height: 8),
-
                 SizedBox(
                   height: 90,
                   child: ListView.separated(
@@ -237,6 +249,103 @@ Future<NoteEditOutcome?> showEditNoteDialog({
                     },
                   ),
                 ),
+
+                const SizedBox(height: 16),
+
+                // -------- Videos --------
+                Row(
+                  children: [
+                    Text('Video', style: Theme.of(ctx).textTheme.labelLarge),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: (onAddVideos == null)
+                          ? null
+                          : () async {
+                              final upd = await onAddVideos(note.id);
+                              setState(() {
+                                videos = upd.videoPaths;
+                                videoThumbs = upd.thumbPaths;
+                              });
+                            },
+                      icon: const Icon(Icons.video_collection_outlined),
+                      label: const Text('Lägg till'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 96,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: videos.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (_, i) {
+                      final vPath = videos[i];
+                      final tPath = (i < videoThumbs.length)
+                          ? videoThumbs[i]
+                          : null;
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: (tPath != null && tPath.isNotEmpty)
+                                ? Image.file(
+                                    File(tPath),
+                                    width: 160,
+                                    height: 96,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) =>
+                                        _thumbFallback(),
+                                  )
+                                : _thumbFallback(),
+                          ),
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: const BoxDecoration(
+                              color: Colors.black45,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.play_arrow,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: IconButton(
+                              tooltip: 'Ta bort video',
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints.tightFor(
+                                width: 28,
+                                height: 28,
+                              ),
+                              icon: const Icon(
+                                Icons.highlight_remove,
+                                size: 22,
+                              ),
+                              color: Colors.red,
+                              onPressed: (onRemoveVideo == null)
+                                  ? null
+                                  : () async {
+                                      final upd = await onRemoveVideo(
+                                        note.id,
+                                        vPath,
+                                      );
+                                      setState(() {
+                                        videos = upd.videoPaths;
+                                        videoThumbs = upd.thumbPaths;
+                                      });
+                                    },
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
           ),
@@ -262,7 +371,7 @@ Future<NoteEditOutcome?> showEditNoteDialog({
                     ),
                   ),
                   style: const ButtonStyle(
-                    backgroundColor: WidgetStatePropertyAll<Color>(
+                    backgroundColor: MaterialStatePropertyAll<Color>(
                       Colors.blueGrey,
                     ),
                   ),
@@ -279,7 +388,7 @@ Future<NoteEditOutcome?> showEditNoteDialog({
     },
   );
 
-  if (result == null) return null; // cancelled
+  if (result == null) return null;
   if (result.deleted) return const NoteEditOutcome(deleted: true);
 
   final t = result.title;
@@ -303,3 +412,12 @@ class _InternalResult {
   const _InternalResult.save(String t, String b, int c)
     : this._(t, b, c, false);
 }
+
+// Small fallback tile for missing video thumbnails
+Widget _thumbFallback() => Container(
+  width: 160,
+  height: 96,
+  color: Colors.black26,
+  alignment: Alignment.center,
+  child: const Icon(Icons.videocam_outlined, color: Colors.white70),
+);

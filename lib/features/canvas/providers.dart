@@ -8,8 +8,10 @@ import 'package:gk_notes/data/models/repositories/hive_note_repository.dart';
 import 'package:gk_notes/data/models/repositories/note_repository.dart';
 import 'package:gk_notes/domain/search/scoring.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 import '../../data/models/note.dart';
 import '../../domain/search/search_service.dart';
 
@@ -159,7 +161,6 @@ class NotesNotifier extends Notifier<List<Note>> {
     return state.firstWhere((n) => n.id == id).imagePaths;
   }
 
-  // Pick from gallery and attach to an existing note.
   Future<void> attachImages(String id) async {
     final addedPaths = <String>[];
 
@@ -252,6 +253,169 @@ class NotesNotifier extends Notifier<List<Note>> {
       final f = File(path);
       if (await f.exists()) await f.delete();
     } catch (_) {}
+    _search.index(state);
+    saveDebounced();
+  }
+
+  Future<void> attachVideos(String id) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final noteDir = Directory('${appDir.path}/notes/$id');
+    if (!await noteDir.exists()) await noteDir.create(recursive: true);
+
+    final addedVideos = <String>[];
+    final addedThumbs = <String>[];
+
+    // Prefer FilePicker for videos (supports large files, SAF on Android)
+    final res = await FilePicker.platform.pickFiles(
+      type: FileType.video,
+      allowMultiple: true,
+      withData: false, // don't load huge files into memory
+    );
+
+    if (res == null || res.files.isEmpty) return;
+
+    for (final f in res.files) {
+      // We need a readable source: path or bytes
+      String? srcPath = f.path;
+      if (srcPath == null) {
+        // Some SAF providers don't give a real path; let’s skip those (or you can add a stream copy)
+        // Alternatively: try to read bytes (dangerous for huge files)
+        continue;
+      }
+
+      // Copy to our sandbox
+      final ext = p.extension(srcPath).isNotEmpty
+          ? p.extension(srcPath)
+          : '.mp4';
+      final videoDest = File(
+        '${noteDir.path}/${DateTime.now().microsecondsSinceEpoch}$ext',
+      );
+      await File(srcPath).copy(videoDest.path);
+
+      // Generate thumbnail next to the video (jpg)
+      final thumbPath = await VideoThumbnail.thumbnailFile(
+        video: videoDest.path,
+        thumbnailPath: noteDir.path, // same folder
+        imageFormat: ImageFormat.JPEG,
+        maxHeight: 320, // reasonable preview size
+        quality: 82,
+      );
+
+      addedVideos.add(videoDest.path);
+      addedThumbs.add(thumbPath ?? '');
+    }
+
+    if (addedVideos.isEmpty) return;
+
+    state = [
+      for (final n in state)
+        if (n.id == id)
+          n.copyWith(
+            videoPaths: [...n.videoPaths, ...addedVideos],
+            videoThumbPaths: [...n.videoThumbPaths, ...addedThumbs],
+            updatedAt: DateTime.now(),
+          )
+        else
+          n,
+    ];
+    _search.index(state);
+    saveDebounced();
+  }
+
+  Future<void> attachVideosFromPaths(String id, List<String> srcPaths) async {
+    if (srcPaths.isEmpty) return;
+
+    final appDir = await getApplicationDocumentsDirectory();
+    final noteDir = Directory('${appDir.path}/notes/$id');
+    if (!await noteDir.exists()) await noteDir.create(recursive: true);
+
+    final addedVideos = <String>[];
+    final addedThumbs = <String>[];
+
+    for (final src in srcPaths) {
+      if (src.isEmpty) continue;
+      final ext = p.extension(src).isNotEmpty ? p.extension(src) : '.mp4';
+      final videoDest = File(
+        '${noteDir.path}/${DateTime.now().microsecondsSinceEpoch}$ext',
+      );
+      await File(src).copy(videoDest.path);
+
+      // (Optional) run your compression helper here, then replace original if smaller
+
+      // Generate a thumbnail for quick previews
+      final thumbPath = await VideoThumbnail.thumbnailFile(
+        video: videoDest.path,
+        thumbnailPath: noteDir.path,
+        imageFormat: ImageFormat.JPEG,
+        maxHeight: 320,
+        quality: 82,
+      );
+
+      addedVideos.add(videoDest.path);
+      addedThumbs.add(thumbPath ?? '');
+    }
+
+    if (addedVideos.isEmpty) return;
+
+    state = [
+      for (final n in state)
+        if (n.id == id)
+          n.copyWith(
+            videoPaths: [...n.videoPaths, ...addedVideos],
+            videoThumbPaths: [...n.videoThumbPaths, ...addedThumbs],
+            updatedAt: DateTime.now(),
+          )
+        else
+          n,
+    ];
+    _search.index(state);
+    saveDebounced();
+  }
+
+  Future<void> removeVideo(String id, String videoPath) async {
+    // 1) Find the note and the video index
+    final noteIndex = state.indexWhere((n) => n.id == id);
+    if (noteIndex == -1) return;
+    final note = state[noteIndex];
+
+    final idx = note.videoPaths.indexOf(videoPath);
+    if (idx < 0) return;
+
+    // 2) Best-effort delete the files (await allowed here)
+    try {
+      final vf = File(videoPath);
+      if (await vf.exists()) {
+        await vf.delete();
+      }
+    } catch (_) {}
+
+    if (idx < note.videoThumbPaths.length) {
+      try {
+        final tf = File(note.videoThumbPaths[idx]);
+        if (await tf.exists()) {
+          await tf.delete();
+        }
+      } catch (_) {}
+    }
+
+    // 3) Build the new lists
+    final newVideos = [...note.videoPaths]..removeAt(idx);
+    final newThumbs = [...note.videoThumbPaths];
+    if (idx < newThumbs.length) newThumbs.removeAt(idx);
+
+    // 4) Update state
+    state = [
+      for (final n in state)
+        if (n.id == id)
+          n.copyWith(
+            videoPaths: newVideos,
+            videoThumbPaths: newThumbs,
+            updatedAt: DateTime.now(),
+          )
+        else
+          n,
+    ];
+
     _search.index(state);
     saveDebounced();
   }
