@@ -10,8 +10,8 @@ class CreateNoteResult {
   final String title;
   final String text;
   final int colorValue;
-  final List<ImageToAttach> images; // images as bytes (same as before)
-  final List<String> videoPaths; // NEW: source file paths for videos
+  final List<ImageToAttach> images;
+  final List<String> videoPaths;
   const CreateNoteResult(
     this.title,
     this.text,
@@ -28,7 +28,7 @@ Future<CreateNoteResult?> showCreateNoteDialog(BuildContext context) async {
 
   // local state for picked media
   List<ImageToAttach> pickedImages = [];
-  List<String> pickedVideos = []; // absolute file paths (no bytes)
+  List<String> pickedVideos = [];
 
   final res = await showDialog<CreateNoteResult>(
     context: context,
@@ -274,13 +274,12 @@ Future<CreateNoteResult?> showCreateNoteDialog(BuildContext context) async {
                         bodyCtl.text,
                         kNoteColors[selected].value,
                         pickedImages,
-                        videoPaths:
-                            pickedVideos, // <-- include the selected videos
+                        videoPaths: pickedVideos,
                       ),
                     );
                   },
                   style: const ButtonStyle(
-                    backgroundColor: MaterialStatePropertyAll<Color>(
+                    backgroundColor: WidgetStatePropertyAll<Color>(
                       Colors.blueGrey,
                     ),
                   ),

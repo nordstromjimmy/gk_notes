@@ -90,10 +90,9 @@ Future<NoteEditOutcome?> showEditNoteDialog({
                             FilledButton.tonal(
                               onPressed: () => Navigator.pop(c2, true),
                               style: const ButtonStyle(
-                                backgroundColor:
-                                    MaterialStatePropertyAll<Color>(
-                                      Colors.blueGrey,
-                                    ),
+                                backgroundColor: WidgetStatePropertyAll<Color>(
+                                  Colors.blueGrey,
+                                ),
                               ),
                               child: const Text(
                                 'Radera',
@@ -371,7 +370,7 @@ Future<NoteEditOutcome?> showEditNoteDialog({
                     ),
                   ),
                   style: const ButtonStyle(
-                    backgroundColor: MaterialStatePropertyAll<Color>(
+                    backgroundColor: WidgetStatePropertyAll<Color>(
                       Colors.blueGrey,
                     ),
                   ),

@@ -153,7 +153,6 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
       note: note,
       onAddImages: (id) async {
         await ref.read(notesProvider.notifier).attachImages(id);
-        // return fresh list so the dialog updates without closing
         return ref.read(notesProvider).firstWhere((n) => n.id == id).imagePaths;
       },
       onRemoveImage: (id, path) async {

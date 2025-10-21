@@ -340,8 +340,6 @@ class NotesNotifier extends Notifier<List<Note>> {
       );
       await File(src).copy(videoDest.path);
 
-      // (Optional) run your compression helper here, then replace original if smaller
-
       // Generate a thumbnail for quick previews
       final thumbPath = await VideoThumbnail.thumbnailFile(
         video: videoDest.path,
@@ -423,7 +421,6 @@ class NotesNotifier extends Notifier<List<Note>> {
   // ---- persistence helpers ----
   Future<void> save() async => _repo.saveAll(state);
 
-  // very light debounce: avoids spamming disk while dragging
   DateTime _lastSave = DateTime.fromMillisecondsSinceEpoch(0);
   Future<void> saveDebounced({
     Duration minGap = const Duration(milliseconds: 250),
