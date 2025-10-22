@@ -21,9 +21,11 @@ class Note {
   // State
   bool pinned = false;
 
+  // Media and files
   List<String> imagePaths = const [];
   List<String> videoPaths = const [];
   List<String> videoThumbPaths = const [];
+  List<String> pdfPaths = const [];
 
   // Timestamps
   late DateTime createdAt;
@@ -65,6 +67,7 @@ class Note {
     List<String>? imagePaths,
     List<String>? videoPaths,
     List<String>? videoThumbPaths,
+    List<String>? pdfPaths,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -83,6 +86,7 @@ class Note {
     n.imagePaths = imagePaths ?? this.imagePaths;
     n.videoPaths = videoPaths ?? this.videoPaths;
     n.videoThumbPaths = videoThumbPaths ?? this.videoThumbPaths;
+    n.pdfPaths = pdfPaths ?? this.pdfPaths;
     n.createdAt = createdAt ?? this.createdAt;
     n.updatedAt = updatedAt ?? this.updatedAt;
     return n;
@@ -102,6 +106,7 @@ class Note {
     'images': imagePaths,
     'videos': videoPaths,
     'videoThumbs': videoThumbPaths,
+    'pdfPaths': pdfPaths,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
@@ -120,6 +125,7 @@ class Note {
     n.imagePaths = (j['images'] as List?)?.cast<String>() ?? const [];
     n.videoPaths = (j['videos'] as List?)?.cast<String>() ?? const [];
     n.videoThumbPaths = (j['videoThumbs'] as List?)?.cast<String>() ?? const [];
+    n.pdfPaths = (j['pdfPaths'] as List?)?.cast<String>() ?? const [];
     n.createdAt = DateTime.parse(j['createdAt'] as String);
     n.updatedAt = DateTime.parse(j['updatedAt'] as String);
     return n;

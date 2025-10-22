@@ -40,7 +40,9 @@ class NoteCard extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
-                  if (note.imagePaths.isNotEmpty || note.videoPaths.isNotEmpty)
+                  if (note.imagePaths.isNotEmpty ||
+                      note.videoPaths.isNotEmpty ||
+                      note.pdfPaths.isNotEmpty)
                     const Padding(
                       padding: EdgeInsets.only(right: 4),
                       child: Icon(

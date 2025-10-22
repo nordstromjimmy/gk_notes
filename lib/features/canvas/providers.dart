@@ -418,6 +418,72 @@ class NotesNotifier extends Notifier<List<Note>> {
     saveDebounced();
   }
 
+  Future<void> attachPdfs(String id) async {
+    final res = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      allowMultiple: true,
+      withData: false,
+    );
+    if (res == null || res.files.isEmpty) return;
+
+    final paths = <String>[];
+    for (final f in res.files) {
+      if (f.path != null && f.path!.isNotEmpty) paths.add(f.path!);
+    }
+    await attachPdfsFromPaths(id, paths);
+  }
+
+  Future<void> attachPdfsFromPaths(String id, List<String> srcPaths) async {
+    if (srcPaths.isEmpty) return;
+    final appDir = await getApplicationDocumentsDirectory();
+    final noteDir = Directory('${appDir.path}/notes/$id');
+    if (!await noteDir.exists()) await noteDir.create(recursive: true);
+
+    final added = <String>[];
+    for (final src in srcPaths) {
+      final dest = File(
+        '${noteDir.path}/${DateTime.now().microsecondsSinceEpoch}.pdf',
+      );
+      await File(src).copy(dest.path);
+      added.add(dest.path);
+    }
+
+    state = [
+      for (final n in state)
+        if (n.id == id)
+          n.copyWith(
+            pdfPaths: [...n.pdfPaths, ...added],
+            updatedAt: DateTime.now(),
+          )
+        else
+          n,
+    ];
+    _search.index(state);
+    saveDebounced();
+  }
+
+  Future<void> removePdf(String id, String pdfPath) async {
+    state = [
+      for (final n in state)
+        if (n.id == id)
+          n.copyWith(
+            pdfPaths: n.pdfPaths.where((p0) => p0 != pdfPath).toList(),
+            updatedAt: DateTime.now(),
+          )
+        else
+          n,
+    ];
+    try {
+      final f = File(pdfPath);
+      if (await f.exists()) {
+        await f.delete();
+      }
+    } catch (_) {}
+    _search.index(state);
+    saveDebounced();
+  }
+
   // ---- persistence helpers ----
   Future<void> save() async => _repo.saveAll(state);
 

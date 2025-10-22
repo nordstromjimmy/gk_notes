@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:gk_notes/theme/note_colors.dart';
+import 'package:path/path.dart' as p show basename;
 import '../../../data/models/note.dart';
 
 class NoteEditOutcome {
@@ -19,6 +20,9 @@ class NoteEditOutcome {
 typedef AddImagesFn = Future<List<String>> Function(String noteId);
 typedef RemoveImageFn =
     Future<List<String>> Function(String noteId, String path);
+typedef AddPdfFn = Future<List<String>> Function(String noteId);
+typedef RemovePdfFn =
+    Future<List<String>> Function(String noteId, String pdfPath);
 
 class VideoUpdate {
   final List<String> videoPaths;
@@ -37,6 +41,8 @@ Future<NoteEditOutcome?> showEditNoteDialog({
   RemoveImageFn? onRemoveImage,
   AddVideosFn? onAddVideos,
   RemoveVideoFn? onRemoveVideo,
+  AddPdfFn? onAddPdf,
+  RemovePdfFn? onRemovePdf,
 }) async {
   final titleCtl = TextEditingController(text: note.title);
   final bodyCtl = TextEditingController(text: note.text);
@@ -52,6 +58,7 @@ Future<NoteEditOutcome?> showEditNoteDialog({
       List<String> images = List<String>.from(note.imagePaths);
       List<String> videos = List<String>.from(note.videoPaths);
       List<String> videoThumbs = List<String>.from(note.videoThumbPaths);
+      List<String> pdfs = List<String>.from(note.pdfPaths);
 
       return StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
@@ -341,6 +348,59 @@ Future<NoteEditOutcome?> showEditNoteDialog({
                             ),
                           ),
                         ],
+                      );
+                    },
+                  ),
+                ),
+                // -------- PDFS --------
+                Row(
+                  children: [
+                    Text('PDF', style: Theme.of(ctx).textTheme.labelLarge),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: (onAddPdf == null)
+                          ? null
+                          : () async {
+                              final updated = await onAddPdf(note.id);
+                              setState(() => pdfs = updated);
+                            },
+                      icon: const Icon(Icons.picture_as_pdf_outlined),
+                      label: const Text('Lägg till'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                SizedBox(
+                  height: 40,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: pdfs.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (_, i) {
+                      final path = pdfs[i];
+                      final name = p.basename(path);
+                      return Chip(
+                        label: Text(
+                          name,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                        // shows just an “X” to delete
+                        deleteIcon: const Icon(Icons.close, size: 18),
+                        onDeleted: (onRemovePdf == null)
+                            ? null
+                            : () async {
+                                final updated = await onRemovePdf(
+                                  note.id,
+                                  path,
+                                );
+                                setState(() => pdfs = updated);
+                              },
+                        // tighter look
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
                       );
                     },
                   ),

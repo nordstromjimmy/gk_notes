@@ -96,6 +96,7 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
               int? colorValue,
               List<ImageToAttach>? images,
               List<String>? videos,
+              List<String>? pdfs,
             }) async {
               // create the note & get its id
               final newNote = await ref
@@ -110,6 +111,11 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
                 await ref
                     .read(notesProvider.notifier)
                     .attachVideosFromPaths(newNote.id, videos);
+              }
+              if (pdfs != null && pdfs.isNotEmpty) {
+                await ref
+                    .read(notesProvider.notifier)
+                    .attachPdfsFromPaths(newNote.id, pdfs);
               }
               return newNote;
             },
@@ -168,6 +174,16 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
         await ref.read(notesProvider.notifier).removeVideo(id, vPath);
         final n = ref.read(notesProvider).firstWhere((e) => e.id == id);
         return VideoUpdate(n.videoPaths, n.videoThumbPaths);
+      },
+      onAddPdf: (id) async {
+        await ref.read(notesProvider.notifier).attachPdfs(id);
+        final n = ref.read(notesProvider).firstWhere((e) => e.id == id);
+        return n.pdfPaths;
+      },
+      onRemovePdf: (id, path) async {
+        await ref.read(notesProvider.notifier).removePdf(id, path);
+        final n = ref.read(notesProvider).firstWhere((e) => e.id == id);
+        return n.pdfPaths;
       },
     );
     if (outcome == null) return;

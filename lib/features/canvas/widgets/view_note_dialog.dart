@@ -1,6 +1,8 @@
 // lib/features/canvas/widgets/view_note_dialog.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path/path.dart' as p;
 import 'package:video_player/video_player.dart';
 import '../../../data/models/note.dart';
 import 'edit_note_dialog.dart';
@@ -14,6 +16,8 @@ Future<NoteEditOutcome?> showViewNoteDialog({
   RemoveImageFn? onRemoveImage,
   AddVideosFn? onAddVideos,
   RemoveVideoFn? onRemoveVideo,
+  AddPdfFn? onAddPdf,
+  RemovePdfFn? onRemovePdf,
 }) async {
   final action = await showDialog<_ViewAction>(
     context: context,
@@ -170,6 +174,35 @@ Future<NoteEditOutcome?> showViewNoteDialog({
                 ),
                 const SizedBox(height: 8),
               ],
+              if (note.pdfPaths.isNotEmpty) ...[
+                Text('PDF', style: Theme.of(ctx).textTheme.labelLarge),
+                const SizedBox(height: 4),
+                Column(
+                  children: [
+                    for (final pdf in note.pdfPaths)
+                      ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.picture_as_pdf),
+                        title: Text(
+                          p.basename(pdf),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onTap: () async {
+                          final res = await OpenFilex.open(pdf);
+                          if (res.type != ResultType.done) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Kunde inte öppna PDF (ingen app hittades?)',
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -206,6 +239,8 @@ Future<NoteEditOutcome?> showViewNoteDialog({
     onRemoveImage: onRemoveImage,
     onAddVideos: onAddVideos,
     onRemoveVideo: onRemoveVideo,
+    onAddPdf: onAddPdf,
+    onRemovePdf: onRemovePdf,
   );
 }
 

@@ -35,6 +35,7 @@ class CanvasViewport extends ConsumerWidget {
     int? colorValue,
     List<ImageToAttach>? images,
     List<String>? videos,
+    List<String>? pdfs,
   })
   onAddAt;
 
@@ -67,6 +68,7 @@ class CanvasViewport extends ConsumerWidget {
           colorValue: created.colorValue,
           images: created.images,
           videos: created.videoPaths,
+          pdfs: created.pdfPaths,
         );
       },
       child: InteractiveViewer(
