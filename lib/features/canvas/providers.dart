@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gk_notes/core/image_compress.dart';
 import 'package:gk_notes/data/models/image_to_attach.dart';
 import 'package:gk_notes/data/models/repositories/hive_note_repository.dart';
-import 'package:gk_notes/data/models/repositories/note_repository.dart';
 import 'package:gk_notes/domain/search/scoring.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -17,7 +16,7 @@ import '../../domain/search/search_service.dart';
 
 final searchServiceProvider = Provider<SearchService>((ref) => SearchService());
 
-final repositoryProvider = Provider<NoteRepository>(
+final repositoryProvider = Provider<HiveNoteRepository>(
   (ref) => HiveNoteRepository(),
 );
 
@@ -26,7 +25,7 @@ final notesProvider = NotifierProvider<NotesNotifier, List<Note>>(
 );
 
 class NotesNotifier extends Notifier<List<Note>> {
-  late final NoteRepository _repo;
+  late final HiveNoteRepository _repo;
   late final SearchService _search;
   final _uuid = const Uuid();
 

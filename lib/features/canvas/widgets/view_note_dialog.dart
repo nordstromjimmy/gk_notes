@@ -1,4 +1,3 @@
-// lib/features/canvas/widgets/view_note_dialog.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
@@ -307,7 +306,7 @@ Widget _thumbFallback() => Container(
 void _showVideoPlayer(BuildContext context, String path) {
   showDialog(
     context: context,
-    barrierColor: Colors.black.withOpacity(0.9),
+    barrierColor: Colors.black.withValues(alpha: 0.9),
     builder: (_) => _VideoPlayerDialog(path: path),
   );
 }
@@ -352,14 +351,6 @@ class _VideoPlayerDialogState extends State<_VideoPlayerDialog> {
             child: _ready
                 ? VideoPlayer(_ctl)
                 : const Center(child: CircularProgressIndicator()),
-          ),
-          Positioned(
-            right: 8,
-            top: 8,
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
           ),
           // Play/pause tap
           Positioned.fill(

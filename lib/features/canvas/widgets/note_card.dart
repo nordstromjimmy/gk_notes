@@ -9,7 +9,7 @@ class NoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const hPad = 8.0; // horizontal padding
+    const hPad = 6.0; // horizontal padding
     const vPad = 6.0; // vertical padding
     const gapT = 4.0; // gap between title and body
     const iconSize = 16.0;
@@ -23,7 +23,7 @@ class NoteCard extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(hPad, vPad, hPad, vPad),
         decoration: BoxDecoration(
           color: note.color,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(4),
         ),
         child: DefaultTextStyle.merge(
           style: const TextStyle(color: Colors.white70, height: 1.2),

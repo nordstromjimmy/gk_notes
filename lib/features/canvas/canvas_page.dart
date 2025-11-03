@@ -9,7 +9,6 @@ import 'package:gk_notes/features/canvas/widgets/view_note_dialog.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:vector_math/vector_math_64.dart' hide Colors;
 import '../../data/models/note.dart';
-import '../../data/models/repositories/hive_note_repository.dart';
 import '../search/search_bar.dart';
 import 'canvas_controller.dart';
 import 'providers.dart';
@@ -209,7 +208,7 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
   }
 
   Future<void> _export() async {
-    final repo = ref.read(repositoryProvider) as HiveNoteRepository;
+    final repo = ref.read(repositoryProvider);
     final file = await repo.exportToJsonFile();
     await SharePlus.instance.share(
       ShareParams(text: 'Anteckningar exporterade', files: [XFile(file.path)]),
@@ -224,7 +223,7 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
     if (res == null || res.files.isEmpty) return;
     final path = res.files.single.path;
     if (path == null) return;
-    final repo = ref.read(repositoryProvider) as HiveNoteRepository;
+    final repo = ref.read(repositoryProvider);
     final count = await repo.importFromJsonFile(
       File(path),
       replaceExisting: false,

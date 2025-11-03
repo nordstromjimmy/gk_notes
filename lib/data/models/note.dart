@@ -1,4 +1,3 @@
-// lib/data/models/note.dart
 import 'package:flutter/material.dart';
 
 class Note {

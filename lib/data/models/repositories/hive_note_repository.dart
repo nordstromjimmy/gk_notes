@@ -3,9 +3,8 @@ import 'dart:io';
 import 'package:gk_notes/data/models/note.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
-import 'note_repository.dart';
 
-class HiveNoteRepository implements NoteRepository {
+class HiveNoteRepository {
   static const _boxName = 'notes_box';
   Box<Map>? _box;
 
@@ -15,7 +14,6 @@ class HiveNoteRepository implements NoteRepository {
     return _box!;
   }
 
-  @override
   Future<List<Note>> load() async {
     final box = await _db();
     final items = box.values
@@ -26,20 +24,17 @@ class HiveNoteRepository implements NoteRepository {
     return items;
   }
 
-  @override
   Future<void> saveAll(List<Note> notes) async {
     final box = await _db();
     await box.clear();
     await box.putAll({for (final n in notes) n.id: n.toExportJson()});
   }
 
-  @override
   Future<void> upsert(Note note) async {
     final box = await _db();
     await box.put(note.id, note.toExportJson());
   }
 
-  @override
   Future<void> removeById(String id) async {
     final box = await _db();
     await box.delete(id);
