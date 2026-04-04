@@ -56,7 +56,7 @@ class _SearchSheetState extends ConsumerState<SearchSheet> {
                 onChanged: _run,
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.search),
-                  hintText: 'Sök..',
+                  hintText: 'Search..',
                   isDense: true,
                 ),
               ),
@@ -65,7 +65,7 @@ class _SearchSheetState extends ConsumerState<SearchSheet> {
               child: _results.isEmpty
                   ? const Padding(
                       padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Text('Inga resultat'),
+                      child: Text('No Results'),
                     )
                   : ListView.separated(
                       shrinkWrap: true,

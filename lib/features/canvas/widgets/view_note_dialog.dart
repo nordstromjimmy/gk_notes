@@ -1,3 +1,5 @@
+// view_note_dialog.dart
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
@@ -5,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:video_player/video_player.dart';
 import '../../../data/models/note.dart';
 import 'edit_note_dialog.dart';
+import 'note_dialog_shared.dart';
 
 enum _ViewAction { close, edit }
 
@@ -22,217 +25,237 @@ Future<NoteEditOutcome?> showViewNoteDialog({
     context: context,
     builder: (ctx) {
       final screenW = MediaQuery.of(ctx).size.width;
-      final dialogWidth = (screenW * 0.92).clamp(360.0, 720.0);
-      const bg = Color(0xFF38464F);
-      const fgMuted = Colors.white70;
+      final dialogWidth = (screenW * 0.92).clamp(320.0, 680.0);
+      final maxContentH = MediaQuery.of(ctx).size.height - 220;
 
       return AlertDialog(
+        backgroundColor: const Color(0xFF263238),
+        shape: RoundedRectangleBorder(
+          // Thin top border in the note's own color — subtle identity cue.
+          borderRadius: BorderRadius.circular(16),
+        ),
         insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
-        titlePadding: const EdgeInsets.fromLTRB(20, 20, 8, 0),
+        titlePadding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
         contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-        backgroundColor: bg,
-        scrollable: true,
+
         title: Row(
           children: [
+            // Note color dot
+            Container(
+              width: 10,
+              height: 10,
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: note.color,
+                shape: BoxShape.circle,
+              ),
+            ),
             const Text(
-              'Anteckning',
-              style: TextStyle(color: fgMuted, fontWeight: FontWeight.w600),
+              'Note',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
             ),
             const Spacer(),
             IconButton(
-              tooltip: 'Redigera',
-              icon: const Icon(Icons.settings_outlined, color: fgMuted),
+              tooltip: 'Edit',
+              icon: Icon(
+                Icons.edit_outlined,
+                color: Colors.white.withValues(alpha: 0.55),
+                size: 20,
+              ),
               onPressed: () => Navigator.pop(ctx, _ViewAction.edit),
             ),
           ],
         ),
+
         content: SizedBox(
           width: dialogWidth,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (note.title.isNotEmpty) ...[
-                Text(
-                  note.title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: fgMuted,
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-              Text(
-                note.text,
-                style: const TextStyle(color: fgMuted, fontSize: 16),
-              ),
-              const SizedBox(height: 16),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxContentH),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ---- Note title ----
+                  if (note.title.isNotEmpty) ...[
+                    Text(
+                      note.title,
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Divider(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      height: 1,
+                    ),
+                    const SizedBox(height: 10),
+                  ],
 
-              // ---- Images ----
-              if (note.imagePaths.isNotEmpty) ...[
-                Text(
-                  'Bilder',
-                  style: Theme.of(
-                    ctx,
-                  ).textTheme.labelLarge?.copyWith(color: fgMuted),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 96,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: note.imagePaths.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (_, i) {
-                      final path = note.imagePaths[i];
-                      return GestureDetector(
-                        onTap: () => _showImageViewer(
-                          ctx, // use dialog context, not outer context
-                          note.imagePaths,
-                          initialIndex: i,
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.file(
-                            File(path),
-                            width: 96,
-                            height: 96,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 96,
-                              height: 96,
-                              color: Colors.black26,
-                              alignment: Alignment.center,
-                              child: const Icon(
-                                Icons.broken_image_outlined,
-                                color: Colors.white70,
-                              ),
+                  // ---- Note text ----
+                  if (note.text.isNotEmpty)
+                    Text(
+                      note.text,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.78),
+                        fontSize: 15,
+                        height: 1.6,
+                      ),
+                    ),
+
+                  // ---- Images ----
+                  if (note.imagePaths.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    const SectionLabel('Bilder'),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 88,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: note.imagePaths.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (_, i) {
+                          final path = note.imagePaths[i];
+                          return GestureDetector(
+                            onTap: () => _showImageViewer(
+                              ctx,
+                              note.imagePaths,
+                              initialIndex: i,
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-
-              // ---- Videos ----
-              if (note.videoPaths.isNotEmpty) ...[
-                Text(
-                  'Video',
-                  style: Theme.of(
-                    ctx,
-                  ).textTheme.labelLarge?.copyWith(color: fgMuted),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 96,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: note.videoPaths.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (_, i) {
-                      final thumb = i < note.videoThumbPaths.length
-                          ? note.videoThumbPaths[i]
-                          : null;
-                      return GestureDetector(
-                        onTap: () => _showVideoPlayer(ctx, note.videoPaths[i]),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            ClipRRect(
+                            child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: thumb != null && thumb.isNotEmpty
-                                  ? Image.file(
-                                      File(thumb),
-                                      width: 160,
-                                      height: 96,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
-                                          _thumbFallback(),
-                                    )
-                                  : _thumbFallback(),
-                            ),
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: const BoxDecoration(
-                                color: Colors.black45,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.play_arrow,
-                                color: Colors.white,
-                                size: 20,
+                              child: Image.file(
+                                File(path),
+                                width: 88,
+                                height: 88,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    _brokenImageTile(88, 88),
                               ),
                             ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-
-              // ---- PDFs ----
-              if (note.pdfPaths.isNotEmpty) ...[
-                Text(
-                  'PDF',
-                  style: Theme.of(ctx).textTheme.labelLarge?.copyWith(
-                    color: fgMuted,
-                  ), // was missing color — invisible on dark bg
-                ),
-                const SizedBox(height: 4),
-                Column(
-                  children: [
-                    for (final pdf in note.pdfPaths)
-                      ListTile(
-                        dense: true,
-                        leading: const Icon(
-                          Icons.picture_as_pdf,
-                          color: Colors.white70,
-                        ),
-                        title: Text(
-                          p.basename(pdf),
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white70),
-                        ),
-                        onTap: () async {
-                          final res = await OpenFilex.open(pdf);
-                          if (res.type != ResultType.done && ctx.mounted) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Kunde inte öppna PDF (ingen app hittades?)',
-                                ),
-                              ),
-                            );
-                          }
+                          );
                         },
                       ),
+                    ),
                   ],
-                ),
-              ],
-            ],
+
+                  // ---- Videos ----
+                  if (note.videoPaths.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    const SectionLabel('Video'),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 88,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: note.videoPaths.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (_, i) {
+                          final thumb = i < note.videoThumbPaths.length
+                              ? note.videoThumbPaths[i]
+                              : null;
+                          return GestureDetector(
+                            onTap: () =>
+                                _showVideoPlayer(ctx, note.videoPaths[i]),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: thumb != null && thumb.isNotEmpty
+                                      ? Image.file(
+                                          File(thumb),
+                                          width: 150,
+                                          height: 88,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) =>
+                                              _videoThumbFallback(),
+                                        )
+                                      : _videoThumbFallback(),
+                                ),
+                                Container(
+                                  width: 34,
+                                  height: 34,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black45,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.play_arrow,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+
+                  // ---- PDFs ----
+                  if (note.pdfPaths.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    const SectionLabel('PDF'),
+                    const SizedBox(height: 8),
+                    Column(
+                      children: [
+                        for (final pdf in note.pdfPaths)
+                          _PdfTile(
+                            path: pdf,
+                            onTap: () async {
+                              final res = await OpenFilex.open(pdf);
+                              if (res.type != ResultType.done && ctx.mounted) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Kunde inte öppna PDF (ingen app hittades?)',
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                      ],
+                    ),
+                  ],
+
+                  const SizedBox(height: 4),
+                ],
+              ),
+            ),
           ),
         ),
+
+        actionsPadding: const EdgeInsets.fromLTRB(12, 0, 16, 12),
         actions: [
           Row(
             children: [
               const Spacer(),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, _ViewAction.close),
-                style: const ButtonStyle(
-                  backgroundColor: WidgetStatePropertyAll<Color>(
-                    Colors.blueGrey,
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF546E7A),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 22,
+                    vertical: 10,
                   ),
                 ),
                 child: const Text(
-                  'Stäng',
-                  style: TextStyle(color: Colors.white),
+                  'Close',
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -259,23 +282,20 @@ Future<NoteEditOutcome?> showViewNoteDialog({
 // ---- Image viewer ----
 
 void _showImageViewer(
-  BuildContext context, // receives the dialog's ctx, not the outer context
+  BuildContext context,
   List<String> paths, {
   int initialIndex = 0,
 }) {
-  final controller = PageController(initialPage: initialIndex);
   showDialog(
     context: context,
-    barrierColor: Colors.black.withValues(
-      alpha: 0.9,
-    ), // was ..withValues (cascade bug — barrier was opaque)
+    barrierColor: Colors.black.withValues(alpha: 0.92),
     builder: (viewerCtx) => Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: EdgeInsets.zero,
       child: Stack(
         children: [
           PageView.builder(
-            controller: controller,
+            controller: PageController(initialPage: initialIndex),
             itemCount: paths.length,
             itemBuilder: (_, i) => InteractiveViewer(
               minScale: 0.5,
@@ -286,7 +306,7 @@ void _showImageViewer(
                 errorBuilder: (_, __, ___) => const Center(
                   child: Icon(
                     Icons.broken_image_outlined,
-                    color: Colors.white70,
+                    color: Colors.white38,
                     size: 48,
                   ),
                 ),
@@ -294,13 +314,17 @@ void _showImageViewer(
             ),
           ),
           Positioned(
-            right: 8,
-            top: 8,
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white),
-              onPressed: () => Navigator.of(
-                viewerCtx,
-              ).pop(), // uses viewerCtx, not outer context
+            right: 12,
+            top: 48,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black45,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                onPressed: () => Navigator.of(viewerCtx).pop(),
+              ),
             ),
           ),
         ],
@@ -311,18 +335,10 @@ void _showImageViewer(
 
 // ---- Video player ----
 
-Widget _thumbFallback() => Container(
-  width: 160,
-  height: 96,
-  color: Colors.black26,
-  alignment: Alignment.center,
-  child: const Icon(Icons.videocam_outlined, color: Colors.white70),
-);
-
 void _showVideoPlayer(BuildContext context, String path) {
   showDialog(
     context: context,
-    barrierColor: Colors.black.withValues(alpha: 0.9),
+    barrierColor: Colors.black.withValues(alpha: 0.92),
     builder: (_) => _VideoPlayerDialog(path: path),
   );
 }
@@ -347,7 +363,6 @@ class _VideoPlayerDialogState extends State<_VideoPlayerDialog> {
         if (mounted) setState(() => _ready = true);
         _ctl.play();
       });
-    // Rebuild when play/pause state changes so the overlay icon stays in sync.
     _ctl.addListener(_onControllerUpdate);
   }
 
@@ -373,61 +388,158 @@ class _VideoPlayerDialogState extends State<_VideoPlayerDialog> {
 
     return Dialog(
       backgroundColor: Colors.black,
-      insetPadding: const EdgeInsets.all(8),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          AspectRatio(
-            aspectRatio: _ready ? _ctl.value.aspectRatio : 16 / 9,
-            child: _ready
-                ? VideoPlayer(_ctl)
-                : const Center(child: CircularProgressIndicator()),
-          ),
-
-          // Tap anywhere to toggle playback.
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _togglePlayback,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      insetPadding: const EdgeInsets.all(16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            AspectRatio(
+              aspectRatio: _ready ? _ctl.value.aspectRatio : 16 / 9,
+              child: _ready
+                  ? VideoPlayer(_ctl)
+                  : const Center(
+                      child: CircularProgressIndicator(color: Colors.white54),
+                    ),
             ),
-          ),
 
-          // Play/pause icon — visible when paused, fades out while playing.
-          AnimatedOpacity(
-            opacity: isPlaying ? 0.0 : 1.0,
-            duration: const Duration(milliseconds: 200),
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration: const BoxDecoration(
-                color: Colors.black54,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isPlaying ? Icons.pause : Icons.play_arrow,
-                color: Colors.white,
-                size: 32,
+            // Tap to toggle playback.
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _togglePlayback,
               ),
             ),
-          ),
 
-          // Progress bar at the bottom.
-          if (_ready)
-            Positioned(
-              left: 12,
-              right: 12,
-              bottom: 8,
-              child: VideoProgressIndicator(
-                _ctl,
-                allowScrubbing: true,
-                colors: const VideoProgressColors(
-                  playedColor: Colors.white,
-                  bufferedColor: Colors.white30,
-                  backgroundColor: Colors.white24,
+            // Play/pause overlay — fades out while playing.
+            AnimatedOpacity(
+              opacity: isPlaying ? 0.0 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              child: Container(
+                width: 56,
+                height: 56,
+                decoration: const BoxDecoration(
+                  color: Colors.black54,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isPlaying ? Icons.pause : Icons.play_arrow,
+                  color: Colors.white,
+                  size: 30,
                 ),
               ),
             ),
-        ],
+
+            // Progress bar.
+            if (_ready)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.5),
+                      ],
+                    ),
+                  ),
+                  child: VideoProgressIndicator(
+                    _ctl,
+                    allowScrubbing: true,
+                    colors: const VideoProgressColors(
+                      playedColor: Colors.white,
+                      bufferedColor: Colors.white30,
+                      backgroundColor: Colors.white24,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---- Private helpers ----
+
+Widget _brokenImageTile(double w, double h) => Container(
+  width: w,
+  height: h,
+  decoration: BoxDecoration(
+    color: const Color(0xFF1A2530),
+    borderRadius: BorderRadius.circular(8),
+  ),
+  alignment: Alignment.center,
+  child: Icon(
+    Icons.broken_image_outlined,
+    color: Colors.white.withValues(alpha: 0.3),
+  ),
+);
+
+Widget _videoThumbFallback() => Container(
+  width: 150,
+  height: 88,
+  decoration: BoxDecoration(
+    color: const Color(0xFF1A2530),
+    borderRadius: BorderRadius.circular(8),
+  ),
+  alignment: Alignment.center,
+  child: Icon(
+    Icons.videocam_outlined,
+    color: Colors.white.withValues(alpha: 0.3),
+  ),
+);
+
+class _PdfTile extends StatelessWidget {
+  const _PdfTile({required this.path, required this.onTap});
+  final String path;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A2530),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.picture_as_pdf_outlined,
+              size: 18,
+              color: Colors.white.withValues(alpha: 0.5),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                p.basename(path),
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.75),
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.open_in_new_rounded,
+              size: 14,
+              color: Colors.white.withValues(alpha: 0.3),
+            ),
+          ],
+        ),
       ),
     );
   }

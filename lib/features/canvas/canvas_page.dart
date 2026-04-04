@@ -62,14 +62,14 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
                 value: 'export',
                 child: ListTile(
                   leading: Icon(Icons.file_upload),
-                  title: Text('Exportera JSON'),
+                  title: Text('Export JSON'),
                 ),
               ),
               PopupMenuItem(
                 value: 'import',
                 child: ListTile(
                   leading: Icon(Icons.file_download),
-                  title: Text('Importera JSON'),
+                  title: Text('Import JSON'),
                 ),
               ),
             ],
@@ -77,7 +77,7 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blueGrey[800],
+        backgroundColor: Colors.deepOrange,
         onPressed: _openSearchSheet,
         child: const Icon(Icons.search, color: Colors.white),
       ),

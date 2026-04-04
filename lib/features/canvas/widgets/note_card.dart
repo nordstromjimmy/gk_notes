@@ -9,111 +9,154 @@ class NoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const hPad = 6.0;
-    const vPad = 6.0;
-    const gapT = 4.0;
-    const iconSize = 16.0;
-
     final hasTitle = note.title.isNotEmpty;
     final hasText = note.text.isNotEmpty;
+    final hasMedia =
+        note.imagePaths.isNotEmpty ||
+        note.videoPaths.isNotEmpty ||
+        note.pdfPaths.isNotEmpty;
 
     return RepaintBoundary(
       child: SizedBox(
         width: note.size.width,
-        height: note
-            .size
-            .height, // constrained — body text can no longer overflow into other notes
+        height: note.size.height,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(10),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(hPad, vPad, hPad, vPad),
             decoration: BoxDecoration(
               color: note.color,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: DefaultTextStyle.merge(
-              style: const TextStyle(color: Colors.white70, height: 1.2),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title row: title + media badges + pin button
-                  Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ---- Header ----
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 7, 2, 0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(
                         child: Text(
                           hasTitle ? note.title : '',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            height: 1.3,
+                          ),
                         ),
                       ),
-
-                      // Individual media-type icons so the user knows what's attached.
-                      if (note.imagePaths.isNotEmpty)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 2),
-                          child: Icon(
-                            Icons.image_outlined,
-                            size: iconSize,
-                            color: Colors.white70,
+                      SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: IconButton(
+                          onPressed: onTogglePin,
+                          tooltip: note.pinned ? 'Unpin' : 'Pin',
+                          padding: EdgeInsets.zero,
+                          icon: Icon(
+                            note.pinned
+                                ? Icons.push_pin
+                                : Icons.push_pin_outlined,
+                            size: 13,
+                            color: note.pinned
+                                ? Colors.white
+                                : Colors.white.withValues(alpha: 0.3),
                           ),
-                        ),
-                      if (note.videoPaths.isNotEmpty)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 2),
-                          child: Icon(
-                            Icons.videocam_outlined,
-                            size: iconSize,
-                            color: Colors.white70,
+                          style: IconButton.styleFrom(
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                        ),
-                      if (note.pdfPaths.isNotEmpty)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 2),
-                          child: Icon(
-                            Icons.picture_as_pdf_outlined,
-                            size: iconSize,
-                            color: Colors.white70,
-                          ),
-                        ),
-
-                      // Pin button — splashRadius replaced with styleFrom.
-                      IconButton(
-                        onPressed: onTogglePin,
-                        tooltip: note.pinned ? 'Unpin' : 'Pin',
-                        icon: Icon(
-                          note.pinned
-                              ? Icons.push_pin
-                              : Icons.push_pin_outlined,
-                          size: iconSize,
-                        ),
-                        color: Colors.white70,
-                        padding: EdgeInsets.zero,
-                        visualDensity: VisualDensity.compact,
-                        constraints: const BoxConstraints.tightFor(
-                          width: 28,
-                          height: 28,
-                        ),
-                        style: IconButton.styleFrom(
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                       ),
                     ],
                   ),
+                ),
 
-                  if (hasTitle && hasText) const SizedBox(height: gapT),
-
-                  // Body text — clipped by the parent SizedBox, ellipsis on last visible line.
-                  if (hasText)
-                    Expanded(
+                // ---- Body ----
+                if (hasText)
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        10,
+                        hasTitle ? 3 : 8,
+                        10,
+                        hasMedia ? 4 : 7,
+                      ),
                       child: Text(
                         note.text,
                         softWrap: true,
                         overflow: TextOverflow.fade,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.72),
+                          fontSize: 12,
+                          height: 1.45,
+                        ),
                       ),
                     ),
-                ],
-              ),
+                  )
+                else
+                  const Spacer(),
+
+                // ---- Media footer ----
+                if (hasMedia)
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(10, 4, 10, 5),
+                    color: Colors.black.withValues(alpha: 0.18),
+                    child: Row(
+                      children: [
+                        if (note.imagePaths.isNotEmpty) ...[
+                          Icon(
+                            Icons.image_outlined,
+                            size: 11,
+                            color: Colors.white.withValues(alpha: 0.55),
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            '${note.imagePaths.length}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.white.withValues(alpha: 0.55),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        if (note.videoPaths.isNotEmpty) ...[
+                          Icon(
+                            Icons.videocam_outlined,
+                            size: 11,
+                            color: Colors.white.withValues(alpha: 0.55),
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            '${note.videoPaths.length}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.white.withValues(alpha: 0.55),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        if (note.pdfPaths.isNotEmpty) ...[
+                          Icon(
+                            Icons.picture_as_pdf_outlined,
+                            size: 11,
+                            color: Colors.white.withValues(alpha: 0.55),
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            '${note.pdfPaths.length}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.white.withValues(alpha: 0.55),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
