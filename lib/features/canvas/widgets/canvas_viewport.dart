@@ -1,19 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gk_notes/data/models/image_to_attach.dart';
 import 'package:gk_notes/features/canvas/canvas_controller.dart';
-import 'package:gk_notes/features/canvas/providers.dart';
 import 'package:gk_notes/features/canvas/widgets/create_note_dialog.dart';
 import 'package:gk_notes/features/canvas/widgets/draggable_note.dart';
 import 'package:gk_notes/features/canvas/widgets/grid_painter.dart';
 import '../../../../data/models/note.dart';
 
-const Size kDefaultNoteSize = Size(
-  200,
-  140,
-); // must match your addAt() size in provider.dart
-
-class CanvasViewport extends ConsumerWidget {
+class CanvasViewport extends StatelessWidget {
   const CanvasViewport({
     super.key,
     required this.controller,
@@ -22,6 +15,7 @@ class CanvasViewport extends ConsumerWidget {
     required this.onAddAt,
     required this.onMove,
     required this.onView,
+    required this.onTogglePin,
   });
 
   final CanvasController controller;
@@ -41,21 +35,21 @@ class CanvasViewport extends ConsumerWidget {
 
   final void Function(String id, Offset delta) onMove;
   final ValueChanged<Note> onView;
+  final ValueChanged<String> onTogglePin; // id of the note to toggle
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onLongPressStart: (d) async {
-        // screen -> scene
+        // Convert screen coordinates to canvas coordinates.
         final inv = controller.transformController.value.clone()..invert();
         final scenePoint = MatrixUtils.transformPoint(inv, d.localPosition);
 
-        // ask for title + body
         final created = await showCreateNoteDialog(context);
         if (created == null) return;
 
-        // clamp inside canvas
+        // Clamp so the note is fully inside the canvas.
         final clamped = Offset(
           scenePoint.dx.clamp(0, canvasSize.width - kDefaultNoteSize.width),
           scenePoint.dy.clamp(0, canvasSize.height - kDefaultNoteSize.height),
@@ -84,6 +78,7 @@ class CanvasViewport extends ConsumerWidget {
           height: canvasSize.height,
           child: Stack(
             children: [
+              // Grid — rebuilt only when the transform scale changes.
               Positioned.fill(
                 child: AnimatedBuilder(
                   animation: controller.transformController,
@@ -100,6 +95,8 @@ class CanvasViewport extends ConsumerWidget {
                   },
                 ),
               ),
+
+              // Notes — each wrapped in RepaintBoundary inside NoteCard.
               for (final n in notes)
                 Positioned(
                   left: n.pos.dx,
@@ -109,23 +106,17 @@ class CanvasViewport extends ConsumerWidget {
                     onView: () => onView(n),
                     getScale: () => controller.transformController.value
                         .getMaxScaleOnAxis(),
-                    onTogglePin: () =>
-                        ref.read(notesProvider.notifier).togglePin(n.id),
+                    onTogglePin: () => onTogglePin(n.id),
                     onDrag: (delta) {
                       final proposed = n.pos + delta;
-
-                      final clampedX = proposed.dx.clamp(
-                        0,
-                        canvasSize.width - n.size.width,
-                      );
-                      final clampedY = proposed.dy.clamp(
-                        0,
-                        canvasSize.height - n.size.height,
-                      );
-
                       final clampedDelta = Offset(
-                        clampedX - n.pos.dx,
-                        clampedY - n.pos.dy,
+                        proposed.dx.clamp(0, canvasSize.width - n.size.width) -
+                            n.pos.dx,
+                        proposed.dy.clamp(
+                              0,
+                              canvasSize.height - n.size.height,
+                            ) -
+                            n.pos.dy,
                       );
                       onMove(n.id, clampedDelta);
                     },

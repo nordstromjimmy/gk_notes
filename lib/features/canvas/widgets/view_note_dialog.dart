@@ -52,7 +52,7 @@ Future<NoteEditOutcome?> showViewNoteDialog({
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (note.title.isNotEmpty)
+              if (note.title.isNotEmpty) ...[
                 Text(
                   note.title,
                   style: const TextStyle(
@@ -61,14 +61,15 @@ Future<NoteEditOutcome?> showViewNoteDialog({
                     color: fgMuted,
                   ),
                 ),
-              if (note.title.isNotEmpty) const SizedBox(height: 12),
+                const SizedBox(height: 12),
+              ],
               Text(
                 note.text,
                 style: const TextStyle(color: fgMuted, fontSize: 16),
               ),
               const SizedBox(height: 16),
 
-              // --- Images (thumbnails + tap to preview) ---
+              // ---- Images ----
               if (note.imagePaths.isNotEmpty) ...[
                 Text(
                   'Bilder',
@@ -84,17 +85,17 @@ Future<NoteEditOutcome?> showViewNoteDialog({
                     itemCount: note.imagePaths.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (_, i) {
-                      final p = note.imagePaths[i];
+                      final path = note.imagePaths[i];
                       return GestureDetector(
                         onTap: () => _showImageViewer(
-                          context,
+                          ctx, // use dialog context, not outer context
                           note.imagePaths,
                           initialIndex: i,
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.file(
-                            File(p),
+                            File(path),
                             width: 96,
                             height: 96,
                             fit: BoxFit.cover,
@@ -116,12 +117,14 @@ Future<NoteEditOutcome?> showViewNoteDialog({
                 ),
                 const SizedBox(height: 8),
               ],
+
+              // ---- Videos ----
               if (note.videoPaths.isNotEmpty) ...[
                 Text(
                   'Video',
                   style: Theme.of(
                     ctx,
-                  ).textTheme.labelLarge?.copyWith(color: Colors.white),
+                  ).textTheme.labelLarge?.copyWith(color: fgMuted),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
@@ -131,12 +134,11 @@ Future<NoteEditOutcome?> showViewNoteDialog({
                     itemCount: note.videoPaths.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (_, i) {
-                      final thumb = (i < note.videoThumbPaths.length)
+                      final thumb = i < note.videoThumbPaths.length
                           ? note.videoThumbPaths[i]
                           : null;
                       return GestureDetector(
-                        onTap: () =>
-                            _showVideoPlayer(context, note.videoPaths[i]),
+                        onTap: () => _showVideoPlayer(ctx, note.videoPaths[i]),
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
@@ -154,15 +156,16 @@ Future<NoteEditOutcome?> showViewNoteDialog({
                                   : _thumbFallback(),
                             ),
                             Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
+                              width: 36,
+                              height: 36,
+                              decoration: const BoxDecoration(
                                 color: Colors.black45,
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
                                 Icons.play_arrow,
                                 color: Colors.white,
+                                size: 20,
                               ),
                             ),
                           ],
@@ -173,24 +176,35 @@ Future<NoteEditOutcome?> showViewNoteDialog({
                 ),
                 const SizedBox(height: 8),
               ],
+
+              // ---- PDFs ----
               if (note.pdfPaths.isNotEmpty) ...[
-                Text('PDF', style: Theme.of(ctx).textTheme.labelLarge),
+                Text(
+                  'PDF',
+                  style: Theme.of(ctx).textTheme.labelLarge?.copyWith(
+                    color: fgMuted,
+                  ), // was missing color — invisible on dark bg
+                ),
                 const SizedBox(height: 4),
                 Column(
                   children: [
                     for (final pdf in note.pdfPaths)
                       ListTile(
                         dense: true,
-                        leading: const Icon(Icons.picture_as_pdf),
+                        leading: const Icon(
+                          Icons.picture_as_pdf,
+                          color: Colors.white70,
+                        ),
                         title: Text(
                           p.basename(pdf),
                           overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.white70),
                         ),
                         onTap: () async {
                           final res = await OpenFilex.open(pdf);
-                          if (res.type != ResultType.done) {
+                          if (res.type != ResultType.done && ctx.mounted) {
                             ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(
+                              const SnackBar(
                                 content: Text(
                                   'Kunde inte öppna PDF (ingen app hittades?)',
                                 ),
@@ -230,7 +244,6 @@ Future<NoteEditOutcome?> showViewNoteDialog({
 
   if (action != _ViewAction.edit) return null;
 
-  // Forward to the edit dialog (which can also add/remove images)
   return showEditNoteDialog(
     context: context,
     note: note,
@@ -243,49 +256,51 @@ Future<NoteEditOutcome?> showViewNoteDialog({
   );
 }
 
-/// Full-screen, swipeable, pinch-zoom image viewer
+// ---- Image viewer ----
+
 void _showImageViewer(
-  BuildContext context,
+  BuildContext context, // receives the dialog's ctx, not the outer context
   List<String> paths, {
   int initialIndex = 0,
 }) {
   final controller = PageController(initialPage: initialIndex);
   showDialog(
     context: context,
-    barrierColor: Colors.black..withValues(alpha: 0.9),
-    builder: (_) => Dialog(
+    barrierColor: Colors.black.withValues(
+      alpha: 0.9,
+    ), // was ..withValues (cascade bug — barrier was opaque)
+    builder: (viewerCtx) => Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(0),
+      insetPadding: EdgeInsets.zero,
       child: Stack(
         children: [
           PageView.builder(
             controller: controller,
             itemCount: paths.length,
-            itemBuilder: (_, i) {
-              final file = File(paths[i]);
-              return InteractiveViewer(
-                minScale: 0.5,
-                maxScale: 5,
-                child: Image.file(
-                  file,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Center(
-                    child: Icon(
-                      Icons.broken_image_outlined,
-                      color: Colors.white70,
-                      size: 48,
-                    ),
+            itemBuilder: (_, i) => InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 5,
+              child: Image.file(
+                File(paths[i]),
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Center(
+                  child: Icon(
+                    Icons.broken_image_outlined,
+                    color: Colors.white70,
+                    size: 48,
                   ),
                 ),
-              );
-            },
+              ),
+            ),
           ),
           Positioned(
             right: 8,
             top: 8,
             child: IconButton(
               icon: const Icon(Icons.close, color: Colors.white),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(
+                viewerCtx,
+              ).pop(), // uses viewerCtx, not outer context
             ),
           ),
         ],
@@ -294,7 +309,8 @@ void _showImageViewer(
   );
 }
 
-// helper
+// ---- Video player ----
+
 Widget _thumbFallback() => Container(
   width: 160,
   height: 96,
@@ -328,23 +344,38 @@ class _VideoPlayerDialogState extends State<_VideoPlayerDialog> {
     super.initState();
     _ctl = VideoPlayerController.file(File(widget.path))
       ..initialize().then((_) {
-        setState(() => _ready = true);
+        if (mounted) setState(() => _ready = true);
         _ctl.play();
       });
+    // Rebuild when play/pause state changes so the overlay icon stays in sync.
+    _ctl.addListener(_onControllerUpdate);
+  }
+
+  void _onControllerUpdate() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _ctl.removeListener(_onControllerUpdate);
     _ctl.dispose();
     super.dispose();
   }
 
+  void _togglePlayback() {
+    if (!_ready) return;
+    _ctl.value.isPlaying ? _ctl.pause() : _ctl.play();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isPlaying = _ready && _ctl.value.isPlaying;
+
     return Dialog(
       backgroundColor: Colors.black,
       insetPadding: const EdgeInsets.all(8),
       child: Stack(
+        alignment: Alignment.center,
         children: [
           AspectRatio(
             aspectRatio: _ready ? _ctl.value.aspectRatio : 16 / 9,
@@ -352,24 +383,35 @@ class _VideoPlayerDialogState extends State<_VideoPlayerDialog> {
                 ? VideoPlayer(_ctl)
                 : const Center(child: CircularProgressIndicator()),
           ),
-          // Play/pause tap
+
+          // Tap anywhere to toggle playback.
           Positioned.fill(
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  if (!_ready) return;
-                  if (_ctl.value.isPlaying) {
-                    _ctl.pause();
-                  } else {
-                    _ctl.play();
-                  }
-                  setState(() {});
-                },
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _togglePlayback,
+            ),
+          ),
+
+          // Play/pause icon — visible when paused, fades out while playing.
+          AnimatedOpacity(
+            opacity: isPlaying ? 0.0 : 1.0,
+            duration: const Duration(milliseconds: 200),
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: const BoxDecoration(
+                color: Colors.black54,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isPlaying ? Icons.pause : Icons.play_arrow,
+                color: Colors.white,
+                size: 32,
               ),
             ),
           ),
-          // Simple scrub progress
+
+          // Progress bar at the bottom.
           if (_ready)
             Positioned(
               left: 12,
@@ -378,7 +420,7 @@ class _VideoPlayerDialogState extends State<_VideoPlayerDialog> {
               child: VideoProgressIndicator(
                 _ctl,
                 allowScrubbing: true,
-                colors: VideoProgressColors(
+                colors: const VideoProgressColors(
                   playedColor: Colors.white,
                   bufferedColor: Colors.white30,
                   backgroundColor: Colors.white24,

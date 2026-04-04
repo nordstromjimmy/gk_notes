@@ -3,13 +3,12 @@ import 'package:flutter/material.dart';
 class GridPainter extends CustomPainter {
   final double spacing;
   final int majorEvery;
-  final double scale; // current zoom scale
+  final double scale;
 
   GridPainter({this.spacing = 64, this.majorEvery = 14, this.scale = 1.0});
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Keep strokes ~1 logical pixel regardless of zoom
     final minor = Paint()
       ..color = Colors.white.withValues(alpha: 0.08)
       ..strokeWidth = (1 / scale).clamp(0.5, 2.0)
@@ -20,21 +19,22 @@ class GridPainter extends CustomPainter {
       ..strokeWidth = (1.25 / scale).clamp(0.6, 2.5)
       ..isAntiAlias = false;
 
-    for (double x = 0; x <= size.width; x += spacing) {
-      final isMajor = ((x / spacing).round() % majorEvery) == 0;
-      canvas.drawLine(
-        Offset(x, 0),
-        Offset(x, size.height),
-        isMajor ? major : minor,
-      );
+    // Integer step index avoids floating-point drift at large coordinates.
+    // e.g. at x=9984.0, (9984/64).round() = 156, which is fine,
+    // but accumulated double arithmetic can round incorrectly — int never does.
+    final colCount = (size.width / spacing).ceil();
+    final rowCount = (size.height / spacing).ceil();
+
+    for (int i = 0; i <= colCount; i++) {
+      final x = i * spacing;
+      final paint = (i % majorEvery == 0) ? major : minor;
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
     }
-    for (double y = 0; y <= size.height; y += spacing) {
-      final isMajor = ((y / spacing).round() % majorEvery) == 0;
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        isMajor ? major : minor,
-      );
+
+    for (int i = 0; i <= rowCount; i++) {
+      final y = i * spacing;
+      final paint = (i % majorEvery == 0) ? major : minor;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
   }
 

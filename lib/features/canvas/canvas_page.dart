@@ -1,13 +1,12 @@
 import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gk_notes/data/models/image_to_attach.dart';
 import 'package:gk_notes/features/canvas/widgets/canvas_viewport.dart';
-import 'package:gk_notes/features/canvas/widgets/edit_note_dialog.dart';
 import 'package:gk_notes/features/canvas/widgets/view_note_dialog.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:vector_math/vector_math_64.dart' hide Colors;
 import '../../data/models/note.dart';
 import '../search/search_bar.dart';
 import 'canvas_controller.dart';
@@ -21,34 +20,33 @@ class CanvasPage extends ConsumerStatefulWidget {
 }
 
 class _CanvasPageState extends ConsumerState<CanvasPage> {
-  final CanvasController canvas = CanvasController();
-  final Size canvasSize = const Size(20000, 20000);
+  final CanvasController _canvas = CanvasController();
+  final Size _canvasSize = const Size(20000, 20000);
+
+  // True until the notifier's _init() delivers its first state update,
+  // whether that's an empty list or a full list of notes.
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _centerCamera(scale: 0.45); // tweak this to start more/less zoomed out
+      _canvas.centerCanvas(
+        canvasSize: _canvasSize,
+        viewportSize: MediaQuery.of(context).size,
+        scale: 0.45,
+      );
     });
-  }
-
-  void _centerCamera({double scale = 0.3}) {
-    final viewport = MediaQuery.of(context).size;
-    final cx = canvasSize.width / 2, cy = canvasSize.height / 2;
-
-    final tx = viewport.width / 2 - scale * cx;
-    final ty = viewport.height / 2 - scale * cy;
-
-    canvas.transformController.value = Matrix4.compose(
-      Vector3(tx, ty, 0), // translation
-      Quaternion.identity(), // rotation
-      Vector3(scale, scale, 1), // scale
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final notes = ref.watch(notesProvider);
+
+    // First state update from the notifier signals that _init() has finished.
+    ref.listen<List<Note>>(notesProvider, (_, __) {
+      if (_loading) setState(() => _loading = false);
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -83,43 +81,62 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
         onPressed: _openSearchSheet,
         child: const Icon(Icons.search, color: Colors.white),
       ),
-      body: CanvasViewport(
-        controller: canvas,
-        canvasSize: canvasSize,
-        notes: notes,
-        onAddAt:
-            (
-              pos, {
-              required title,
-              required text,
-              int? colorValue,
-              List<ImageToAttach>? images,
-              List<String>? videos,
-              List<String>? pdfs,
-            }) async {
-              // create the note & get its id
-              final newNote = await ref
-                  .read(notesProvider.notifier)
-                  .addAt(pos, title: title, text: text, colorValue: colorValue);
-              if (images != null && images.isNotEmpty) {
-                await ref
-                    .read(notesProvider.notifier)
-                    .attachImagesFromBytes(newNote.id, images);
-              }
-              if (videos != null && videos.isNotEmpty) {
-                await ref
-                    .read(notesProvider.notifier)
-                    .attachVideosFromPaths(newNote.id, videos);
-              }
-              if (pdfs != null && pdfs.isNotEmpty) {
-                await ref
-                    .read(notesProvider.notifier)
-                    .attachPdfsFromPaths(newNote.id, pdfs);
-              }
-              return newNote;
-            },
-        onMove: (id, delta) => ref.read(notesProvider.notifier).move(id, delta),
-        onView: _view,
+      body: Stack(
+        children: [
+          CanvasViewport(
+            controller: _canvas,
+            canvasSize: _canvasSize,
+            notes: notes,
+            onAddAt:
+                (
+                  pos, {
+                  required title,
+                  required text,
+                  int? colorValue,
+                  List<ImageToAttach>? images,
+                  List<String>? videos,
+                  List<String>? pdfs,
+                }) async {
+                  final newNote = await ref
+                      .read(notesProvider.notifier)
+                      .addAt(
+                        pos,
+                        title: title,
+                        text: text,
+                        colorValue: colorValue,
+                      );
+                  if (images != null && images.isNotEmpty) {
+                    await ref
+                        .read(notesProvider.notifier)
+                        .attachImagesFromBytes(newNote.id, images);
+                  }
+                  if (videos != null && videos.isNotEmpty) {
+                    await ref
+                        .read(notesProvider.notifier)
+                        .attachVideosFromPaths(newNote.id, videos);
+                  }
+                  if (pdfs != null && pdfs.isNotEmpty) {
+                    await ref
+                        .read(notesProvider.notifier)
+                        .attachPdfsFromPaths(newNote.id, pdfs);
+                  }
+                  return newNote;
+                },
+            onMove: (id, delta) =>
+                ref.read(notesProvider.notifier).move(id, delta),
+            onView: _view,
+            onTogglePin: (id) => ref.read(notesProvider.notifier).togglePin(id),
+          ),
+
+          // Loading overlay — shown until the first state update from _init().
+          if (_loading)
+            const ColoredBox(
+              color: Colors.black26,
+              child: Center(
+                child: CircularProgressIndicator(color: Colors.white70),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -131,22 +148,21 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
       builder: (ctx) => SearchSheet(
         onSelect: (noteFromSearch) {
           Navigator.pop(ctx);
-
-          // Fetch the up-to-date note from the current state by id
           final current = ref
               .read(notesProvider)
               .firstWhere(
                 (n) => n.id == noteFromSearch.id,
                 orElse: () => noteFromSearch,
               );
-
-          final rect = Rect.fromLTWH(
-            current.pos.dx,
-            current.pos.dy,
-            current.size.width,
-            current.size.height,
+          _canvas.zoomToRect(
+            context,
+            Rect.fromLTWH(
+              current.pos.dx,
+              current.pos.dy,
+              current.size.width,
+              current.size.height,
+            ),
           );
-          canvas.zoomToRect(context, rect);
         },
       ),
     );
@@ -156,53 +172,43 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
     final outcome = await showViewNoteDialog(
       context: context,
       note: note,
-      onAddImages: (id) async {
-        await ref.read(notesProvider.notifier).attachImages(id);
-        return ref.read(notesProvider).firstWhere((n) => n.id == id).imagePaths;
-      },
-      onRemoveImage: (id, path) async {
-        await ref.read(notesProvider.notifier).removeImage(id, path);
-        return ref.read(notesProvider).firstWhere((n) => n.id == id).imagePaths;
-      },
-      onAddVideos: (id) async {
-        await ref.read(notesProvider.notifier).attachVideos(id);
-        final n = ref.read(notesProvider).firstWhere((e) => e.id == id);
-        return VideoUpdate(n.videoPaths, n.videoThumbPaths);
-      },
-      onRemoveVideo: (id, vPath) async {
-        await ref.read(notesProvider.notifier).removeVideo(id, vPath);
-        final n = ref.read(notesProvider).firstWhere((e) => e.id == id);
-        return VideoUpdate(n.videoPaths, n.videoThumbPaths);
-      },
-      onAddPdf: (id) async {
-        await ref.read(notesProvider.notifier).attachPdfs(id);
-        final n = ref.read(notesProvider).firstWhere((e) => e.id == id);
-        return n.pdfPaths;
-      },
-      onRemovePdf: (id, path) async {
-        await ref.read(notesProvider.notifier).removePdf(id, path);
-        final n = ref.read(notesProvider).firstWhere((e) => e.id == id);
-        return n.pdfPaths;
-      },
+      onAddImages: (id) => ref.read(notesProvider.notifier).attachImages(id),
+      onRemoveImage: (id, path) =>
+          ref.read(notesProvider.notifier).removeImage(id, path),
+      onAddVideos: (id) => ref.read(notesProvider.notifier).attachVideos(id),
+      onRemoveVideo: (id, vPath) =>
+          ref.read(notesProvider.notifier).removeVideo(id, vPath),
+      onAddPdf: (id) => ref.read(notesProvider.notifier).attachPdfs(id),
+      onRemovePdf: (id, path) =>
+          ref.read(notesProvider.notifier).removePdf(id, path),
     );
+
     if (outcome == null) return;
+
     if (outcome.deleted) {
       ref.read(notesProvider.notifier).remove(note.id);
       return;
     }
+
+    // Build the updated note and track whether anything actually changed.
     var updated = note;
-    if (outcome.newTitle != null) {
+    var dirty = false;
+
+    if (outcome.newTitle != null && outcome.newTitle != note.title) {
       updated = updated.copyWith(title: outcome.newTitle);
+      dirty = true;
     }
-    if (outcome.newText != null) {
+    if (outcome.newText != null && outcome.newText != note.text) {
       updated = updated.copyWith(text: outcome.newText);
+      dirty = true;
     }
-    if (outcome.newColorValue != null) {
+    if (outcome.newColorValue != null &&
+        outcome.newColorValue != note.colorValue) {
       updated = updated.copyWith(colorValue: outcome.newColorValue);
+      dirty = true;
     }
 
-    // If anything changed, persist it
-    if (!identical(updated, note)) {
+    if (dirty) {
       ref.read(notesProvider.notifier).update(updated);
     }
   }
@@ -223,11 +229,10 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
     if (res == null || res.files.isEmpty) return;
     final path = res.files.single.path;
     if (path == null) return;
-    final repo = ref.read(repositoryProvider);
-    final count = await repo.importFromJsonFile(
-      File(path),
-      replaceExisting: false,
-    );
+
+    final count = await ref
+        .read(repositoryProvider)
+        .importFromJsonFile(File(path), replaceExisting: false);
 
     await ref.read(notesProvider.notifier).reload();
 
