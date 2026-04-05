@@ -278,7 +278,7 @@ class _EditNoteDialogState extends State<_EditNoteDialog> {
 
               // ---- Images ----
               MediaSection(
-                label: 'Bilder',
+                label: 'Picture',
                 icon: Icons.add_photo_alternate_outlined,
                 onAdd: widget.onAddImages == null
                     ? () {}

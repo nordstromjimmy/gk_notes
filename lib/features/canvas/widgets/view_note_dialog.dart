@@ -113,7 +113,7 @@ Future<NoteEditOutcome?> showViewNoteDialog({
                   // ---- Images ----
                   if (note.imagePaths.isNotEmpty) ...[
                     const SizedBox(height: 20),
-                    const SectionLabel('Bilder'),
+                    const SectionLabel('Picture'),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 88,

@@ -264,7 +264,7 @@ class _CreateNoteDialogState extends State<_CreateNoteDialog> {
               if (_mediaOpen) ...[
                 const SizedBox(height: 14),
                 MediaSection(
-                  label: 'Bilder',
+                  label: 'Picture',
                   icon: Icons.add_photo_alternate_outlined,
                   onAdd: _pickImages,
                   child: _pickedImages.isEmpty
