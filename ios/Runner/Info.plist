@@ -49,5 +49,16 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<!-- Photo Library — required for image picker -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Grid Notes needs access to your photo library to attach images to your notes.</string>
+
+	<!-- Camera — add if you allow taking photos directly -->
+	<key>NSCameraUsageDescription</key>
+	<string>Grid Notes needs access to your camera to take photos for your notes.</string>
+
+	<!-- Microphone — add if you record video with audio -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Grid Notes needs microphone access to record video for your notes.</string>
 </dict>
 </plist>
