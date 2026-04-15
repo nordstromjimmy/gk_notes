@@ -22,6 +22,7 @@ class CanvasPage extends ConsumerStatefulWidget {
 class _CanvasPageState extends ConsumerState<CanvasPage> {
   final CanvasController _canvas = CanvasController();
   final Size _canvasSize = const Size(20000, 20000);
+  final GlobalKey _exportMenuKey = GlobalKey();
 
   // True until the notifier's _init() delivers its first state update,
   // whether that's an empty list or a full list of notes.
@@ -53,6 +54,7 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
         title: const Text('Grid Notes'),
         actions: [
           PopupMenuButton<String>(
+            key: _exportMenuKey,
             onSelected: (v) async {
               if (v == 'export') await _export();
               if (v == 'import') await _import();
@@ -216,8 +218,18 @@ class _CanvasPageState extends ConsumerState<CanvasPage> {
   Future<void> _export() async {
     final repo = ref.read(repositoryProvider);
     final file = await repo.exportToJsonFile();
+
+    final box = _exportMenuKey.currentContext?.findRenderObject() as RenderBox?;
+    final sharePositionOrigin = box != null
+        ? box.localToGlobal(Offset.zero) & box.size
+        : Rect.fromLTWH(0, 0, 10, 10); // fallback
+
     await SharePlus.instance.share(
-      ShareParams(text: 'Anteckningar exporterade', files: [XFile(file.path)]),
+      ShareParams(
+        text: 'Anteckningar exporterade',
+        files: [XFile(file.path)],
+        sharePositionOrigin: sharePositionOrigin, // 👈 add this
+      ),
     );
   }
 
